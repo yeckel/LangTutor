@@ -205,6 +205,12 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             return
         }
 
+        // Typed "I don't know" counts as the I-don't-know button.
+        if (SpeechSupport.isGiveUpPhrase(answer)) {
+            giveUp()
+            return
+        }
+
         if (word.meaningList.isEmpty()) {
             _uiState.update {
                 it.copy(error = "No meaning stored for this word — 'I don't know' shows it.")
@@ -245,11 +251,15 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    /** Learner said a word/meaning; accept either. */
+    /** Learner said a word/meaning; accept either. An "I don't know" phrase acts as the button. */
     fun onSpoken(transcript: String?) {
         val word = current() ?: return
         if (transcript.isNullOrBlank()) {
             _uiState.update { it.copy(spokenMatch = false, spokenText = null) }
+            return
+        }
+        if (SpeechSupport.isGiveUpPhrase(transcript)) {
+            giveUp()
             return
         }
         val matchesWord = SpeechSupport.spokenMatches(word.word, transcript)

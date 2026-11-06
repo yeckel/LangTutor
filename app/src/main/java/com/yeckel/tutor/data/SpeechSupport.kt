@@ -6,6 +6,21 @@ import java.util.Locale
 /** Helpers for the flash-card spoken and written answer checks. */
 object SpeechSupport {
 
+    /** Spoken/typed phrases that mean "I don't know", compared normalized. */
+    private val GIVE_UP_PHRASES = listOf(
+        "dont know", "don t know", "do not know", "no idea", "no clue",
+        "nevim", "nemam tuseni", "netusim", "vubec nevim",
+        "no se", "ni idea", "no tengo idea", "no lo se",
+        "keine ahnung", "je ne sais pas", "non lo so", "non ho idea",
+    )
+
+    /** True when the transcript (or typed input) means "I don't know". */
+    fun isGiveUpPhrase(text: String): Boolean {
+        val normalized = normalize(text)
+        if (normalized.isBlank()) return false
+        return GIVE_UP_PHRASES.any { normalized.contains(it) }
+    }
+
     /** Speech recognition locales per supported language key. */
     fun localeFor(languageKey: String?): Locale? = when (languageKey) {
         "es" -> Locale("es", "ES")
