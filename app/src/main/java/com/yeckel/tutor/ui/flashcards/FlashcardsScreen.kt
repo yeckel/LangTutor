@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -52,6 +53,7 @@ import com.yeckel.tutor.data.SpeechSupport
 import com.yeckel.tutor.data.VocabRepository
 import com.yeckel.tutor.data.meaningList
 import com.yeckel.tutor.rememberAppContainer
+import kotlinx.coroutines.delay
 
 private val placeholderMeaningHint = "Meaning in English"
 
@@ -64,13 +66,129 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     var pendingSpeak by remember { mutableStateOf(false) }
 
+    val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val texts = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        viewModel.onSpoken(texts?.firstOrNull())
+    }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants[Manifest.permission.RECORD_AUDIO] == true && pendingSpeak) {
+            pendingSpeak = false
+            startSpeech(context, state.languageName, speechLauncher)
+        }
+    }
+
     // TTS warmup so auto-speech is ready by the first card.
     LaunchedEffect(Unit) { container.tts.warmup() }
     DisposableEffect(Unit) { onDispose { container.tts.stop() } }
 
-    // Auto-speak the source word on every new card.
+    // In-app recognizer (no dialog); fall back to the intent dialog otherwise.
+    val recognizer = if (android.speech.SpeechRecognizer.isRecognitionAvailable(context)) {
+        remember { android.speech.SpeechRecognizer.createSpeechRecognizer(context) }
+    } else {
+        remember { null }
+    }
+
+    var silentRounds by remember { mutableStateOf(0) }
+    fun startListen(tag: String) {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Say the word")
+        }
+        val rec = recognizer
+        if (rec != null) {
+            rec.startListening(intent)
+        } else {
+            runCatching { speechLauncher.launch(intent) }.onFailure { viewModel.onSpeechUnavailable() }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        recognizer?.setRecognitionListener(object : android.speech.RecognitionListener {
+            override fun onReadyForSpeech(params: android.os.Bundle?) {
+                silentRounds = 0
+            }
+
+            override fun onBeginningOfSpeech() {}
+
+            override fun onRmsChanged(rmsdB: Float) {}
+
+            override fun onBufferReceived(buffer: ByteArray?) {}
+
+            override fun onEndOfSpeech() {}
+
+            override fun onError(error: Int) {
+                // Silence/no-speech during auto-listen: retry once, then wait for manual input.
+                if (error == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
+                    error == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                ) {
+                    if (silentRounds < 1 && viewModel.uiState.value.autoListen && !viewModel.uiState.value.revealed) {
+                        silentRounds += 1
+                        mainHandler.postDelayed({
+                            val st = viewModel.uiState.value
+                            if (!st.revealed && st.autoListen) {
+                                SpeechSupport.localeFor(st.languageKey)?.toLanguageTag()?.let { startListen(it) }
+                            }
+                        }, 700)
+                    }
+                }
+            }
+
+            override fun onResults(results: android.os.Bundle?) {
+                val best = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                viewModel.onSpoken(best)
+            }
+
+            override fun onPartialResults(partialResults: android.os.Bundle?) {}
+
+            override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+        })
+        onDispose {
+            recognizer?.run { stopListening(); destroy() }
+        }
+    }
+
+    // The card cycle for spoken practice: speak the word (if switched on), then
+    // (when auto-listen is on) start listening once the speech finished.
+    LaunchedEffect(
+        state.index, state.phase, state.revealed, state.autoListen, state.speakSource,
+    ) {
+        if (state.phase != FlashcardPhase.STUDY || state.revealed || !state.autoListen) {
+            recognizer?.stopListening()
+            return@LaunchedEffect
+        }
+        val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return@LaunchedEffect // the Say-it button handles the permission flow
+
+        val tag = SpeechSupport.localeFor(state.languageKey)?.toLanguageTag() ?: return@LaunchedEffect
+        if (state.speakSource && container.tts.isReady) {
+            container.tts.speak(word.word, tag, flush = true) { startListen(tag) }
+        } else {
+            delay(600)
+            startListen(tag)
+        }
+    }
+
+    // Stop auto-listening once an answer exists.
+    LaunchedEffect(state.spokenMatch, state.revealed) {
+        if (state.revealed) recognizer?.stopListening()
+    }
+
+    // Auto-speak the source word on every new card when auto-listen is off
+    // (with auto-listen the orchestrator above does the speaking).
     LaunchedEffect(state.index, state.phase) {
-        if (state.phase == FlashcardPhase.STUDY && state.speakSource && !state.revealed) {
+        if (state.phase == FlashcardPhase.STUDY && state.speakSource && !state.revealed && !state.autoListen) {
             val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
             SpeechSupport.localeFor(state.languageKey)?.toLanguageTag()?.let { tag ->
                 container.tts.speak(word.word, tag)
@@ -87,22 +205,6 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                 VocabRepository.languageCode(state.helpLanguage) ?: state.languageKey,
             )?.toLanguageTag() ?: return@LaunchedEffect
             container.tts.speak(meaning, tag, flush = false)
-        }
-    }
-
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val texts = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-        viewModel.onSpoken(texts?.firstOrNull())
-    }
-
-    val micPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { grants ->
-        if (grants[Manifest.permission.RECORD_AUDIO] == true && pendingSpeak) {
-            pendingSpeak = false
-            startSpeech(context, state.languageName, speechLauncher)
         }
     }
 
@@ -199,21 +301,23 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                         if (!state.revealed) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                                horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
                             ) {
-                                FilterChip(
-                                    selected = state.speakSource,
-                                    onClick = { viewModel.toggleSpeakSource(!state.speakSource) },
-                                    label = { Text("🔊 word") },
-                                )
-                                FilterChip(
-                                    selected = state.speakMeanings,
-                                    onClick = { viewModel.toggleSpeakMeanings(!state.speakMeanings) },
-                                    label = { Text("🔊 meaning") },
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("word", style = MaterialTheme.typography.labelSmall)
+                                    Switch(checked = state.speakSource, onCheckedChange = viewModel::toggleSpeakSource)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("meaning", style = MaterialTheme.typography.labelSmall)
+                                    Switch(checked = state.speakMeanings, onCheckedChange = viewModel::toggleSpeakMeanings)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("listen", style = MaterialTheme.typography.labelSmall)
+                                    Switch(checked = state.autoListen, onCheckedChange = viewModel::toggleAutoListen)
+                                }
                             }
                         } else {
-                            Spacer(Modifier.height(34.dp))
+                            Spacer(Modifier.height(70.dp))
                         }
 
                         Text(

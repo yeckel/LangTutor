@@ -21,6 +21,8 @@ data class TutorConfig(
     val speakSource: Boolean = false,
     /** Speak the meaning when it is revealed. */
     val speakMeanings: Boolean = false,
+    /** Start listening automatically after the word is spoken. */
+    val autoListen: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -34,6 +36,7 @@ class SettingsRepository(private val context: Context) {
         val HELP_LANGUAGE = stringPreferencesKey("help_language")
         val SPEAK_SOURCE = booleanPreferencesKey("speak_source")
         val SPEAK_MEANINGS = booleanPreferencesKey("speak_meanings")
+        val SPEAK_LISTEN = booleanPreferencesKey("speak_listen")
     }
 
     val config: Flow<TutorConfig> = context.tutorDataStore.data.map { prefs ->
@@ -46,6 +49,7 @@ class SettingsRepository(private val context: Context) {
             helpLanguage = prefs[Keys.HELP_LANGUAGE] ?: DEFAULT_HELP_LANGUAGE,
             speakSource = prefs[Keys.SPEAK_SOURCE] ?: false,
             speakMeanings = prefs[Keys.SPEAK_MEANINGS] ?: false,
+            autoListen = prefs[Keys.SPEAK_LISTEN] ?: false,
         )
     }
 
@@ -61,6 +65,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.HELP_LANGUAGE] = config.helpLanguage.trim()
             prefs[Keys.SPEAK_SOURCE] = config.speakSource
             prefs[Keys.SPEAK_MEANINGS] = config.speakMeanings
+            prefs[Keys.SPEAK_LISTEN] = config.autoListen
+            prefs[Keys.SPEAK_LISTEN] = config.autoListen
         }
     }
 

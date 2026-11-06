@@ -41,6 +41,7 @@ data class FlashcardUiState(
     val languageKey: String = "",
     val speakSource: Boolean = false,
     val speakMeanings: Boolean = false,
+    val autoListen: Boolean = false,
     val error: String? = null,
 )
 
@@ -138,6 +139,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
                     languageKey = languageKey,
                     speakSource = config.speakSource,
                     speakMeanings = config.speakMeanings,
+                    autoListen = config.autoListen,
                 )
             }
         }
@@ -281,6 +283,14 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             val config = container.settings.current()
             container.settings.save(config.copy(speakMeanings = checked))
+        }
+    }
+
+    fun toggleAutoListen(checked: Boolean) {
+        _uiState.update { it.copy(autoListen = checked) }
+        viewModelScope.launch {
+            val config = container.settings.current()
+            container.settings.save(config.copy(autoListen = checked))
         }
     }
 
