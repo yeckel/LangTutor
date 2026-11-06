@@ -1,6 +1,7 @@
 package com.yeckel.tutor.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.yeckel.tutor.data.tutorDataStore
@@ -16,6 +17,10 @@ data class TutorConfig(
     val language: String,
     val vocabLevel: String,
     val helpLanguage: String,
+    /** Speak each source word when its card appears. */
+    val speakSource: Boolean = false,
+    /** Speak the meaning when it is revealed. */
+    val speakMeanings: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -27,6 +32,8 @@ class SettingsRepository(private val context: Context) {
         val LANGUAGE = stringPreferencesKey("language")
         val VOCAB_LEVEL = stringPreferencesKey("vocab_level")
         val HELP_LANGUAGE = stringPreferencesKey("help_language")
+        val SPEAK_SOURCE = booleanPreferencesKey("speak_source")
+        val SPEAK_MEANINGS = booleanPreferencesKey("speak_meanings")
     }
 
     val config: Flow<TutorConfig> = context.tutorDataStore.data.map { prefs ->
@@ -37,19 +44,23 @@ class SettingsRepository(private val context: Context) {
             language = prefs[Keys.LANGUAGE] ?: DEFAULT_LANGUAGE,
             vocabLevel = prefs[Keys.VOCAB_LEVEL] ?: DEFAULT_VOCAB_LEVEL,
             helpLanguage = prefs[Keys.HELP_LANGUAGE] ?: DEFAULT_HELP_LANGUAGE,
+            speakSource = prefs[Keys.SPEAK_SOURCE] ?: false,
+            speakMeanings = prefs[Keys.SPEAK_MEANINGS] ?: false,
         )
     }
 
     suspend fun current(): TutorConfig = config.first()
 
-    suspend fun save(baseUrl: String, apiKey: String, model: String, language: String, vocabLevel: String, helpLanguage: String) {
+    suspend fun save(config: TutorConfig) {
         context.tutorDataStore.edit { prefs ->
-            prefs[Keys.BASE_URL] = baseUrl.trim()
-            prefs[Keys.API_KEY] = apiKey.trim()
-            prefs[Keys.MODEL] = model.trim()
-            prefs[Keys.LANGUAGE] = language.trim()
-            prefs[Keys.VOCAB_LEVEL] = vocabLevel.trim()
-            prefs[Keys.HELP_LANGUAGE] = helpLanguage.trim()
+            prefs[Keys.BASE_URL] = config.baseUrl.trim()
+            prefs[Keys.API_KEY] = config.apiKey.trim()
+            prefs[Keys.MODEL] = config.model.trim()
+            prefs[Keys.LANGUAGE] = config.language.trim()
+            prefs[Keys.VOCAB_LEVEL] = config.vocabLevel.trim()
+            prefs[Keys.HELP_LANGUAGE] = config.helpLanguage.trim()
+            prefs[Keys.SPEAK_SOURCE] = config.speakSource
+            prefs[Keys.SPEAK_MEANINGS] = config.speakMeanings
         }
     }
 

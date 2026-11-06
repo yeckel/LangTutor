@@ -9,6 +9,7 @@ import com.yeckel.tutor.data.ArticleFetcher
 import com.yeckel.tutor.data.OllamaClient
 import com.yeckel.tutor.data.ProgressRepository
 import com.yeckel.tutor.data.SettingsRepository
+import com.yeckel.tutor.data.TtsManager
 import com.yeckel.tutor.data.VocabRepository
 
 /**
@@ -21,6 +22,7 @@ class AppContainer(context: Context) {
     val articles = ArticleFetcher()
     val vocab = VocabRepository(context.applicationContext)
     val progress = ProgressRepository(context.applicationContext)
+    val tts = TtsManager(context.applicationContext)
 
     var currentArticle: Article? = null
     var pendingContinue: Boolean = false

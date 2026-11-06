@@ -32,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +62,32 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var pendingSpeak by remember { mutableStateOf(false) }
+
+    // TTS warmup so auto-speech is ready by the first card.
+    LaunchedEffect(Unit) { container.tts.warmup() }
+    DisposableEffect(Unit) { onDispose { container.tts.stop() } }
+
+    // Auto-speak the source word on every new card.
+    LaunchedEffect(state.index, state.phase) {
+        if (state.phase == FlashcardPhase.STUDY && state.speakSource && !state.revealed) {
+            val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
+            SpeechSupport.localeFor(state.languageKey)?.toLanguageTag()?.let { tag ->
+                container.tts.speak(word.word, tag)
+            }
+        }
+    }
+
+    // Auto-speak the meaning when it is revealed.
+    LaunchedEffect(state.index, state.revealed) {
+        if (state.phase == FlashcardPhase.STUDY && state.revealed && state.speakMeanings) {
+            val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
+            val meaning = word.meaningList.firstOrNull() ?: return@LaunchedEffect
+            val tag = SpeechSupport.localeFor(
+                VocabRepository.languageCode(state.helpLanguage) ?: state.languageKey,
+            )?.toLanguageTag() ?: return@LaunchedEffect
+            container.tts.speak(meaning, tag, flush = false)
+        }
+    }
 
     val speechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),

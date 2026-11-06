@@ -37,6 +37,11 @@ endpoints behind an authenticated proxy).
   and train them: written meaning checks and *Say it* pronunciation practice
   (speech recognition in the practice language). Correct answers strengthen
   the word automatically.
+- **Speak-everything switches** — Settings: *Speak words automatically* (each
+  card is read in the practice language) and *Speak meanings automatically*
+  (meanings are read in your help language when revealed). Both persist;
+  answers are only checked, never auto-spoken (so *Say it* practice stays
+  meaningful).
 - **Settings** — Ollama server URL, optional API key, practice language,
   vocabulary level, and model selection (fetched live from the server's model
   list; fetch tests the values currently in the fields, before saving).

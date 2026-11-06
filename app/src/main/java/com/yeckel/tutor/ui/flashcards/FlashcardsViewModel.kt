@@ -38,6 +38,9 @@ data class FlashcardUiState(
     val missed: Int = 0,
     val languageName: String = "",
     val helpLanguage: String = "English",
+    val languageKey: String = "",
+    val speakSource: Boolean = false,
+    val speakMeanings: Boolean = false,
     val error: String? = null,
 )
 
@@ -71,6 +74,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     private var languageKey = ""
     private var advanceJob: Job? = null
     private var judgeJob: Job? = null
+    private var speakMeaningsOn = false
 
     init {
         start()
@@ -82,6 +86,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             languageKey = config.let {
                 VocabRepository.languageCode(it.language) ?: it.language.lowercase()
             }
+            speakMeaningsOn = config.speakMeanings
 
             _uiState.update { it.copy(phase = FlashcardPhase.LOADING, error = null) }
 
@@ -125,7 +130,15 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
                 .shuffled()
 
             _uiState.update {
-                it.copy(phase = FlashcardPhase.STUDY, words = fresh, languageName = config.language, helpLanguage = config.helpLanguage)
+                it.copy(
+                    phase = FlashcardPhase.STUDY,
+                    words = fresh,
+                    languageName = config.language,
+                    helpLanguage = config.helpLanguage,
+                    languageKey = languageKey,
+                    speakSource = config.speakSource,
+                    speakMeanings = config.speakMeanings,
+                )
             }
         }
     }
@@ -319,7 +332,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             if (!matchesStored && normalizedTyped.isNotBlank() && tokenize(normalizedTyped).isNotEmpty()) {
                 container.progress.addAcceptedMeaning(languageKey, word.word, normalizedTyped)
             }
-            delay(AUTO_ADVANCE_MS)
+            delay(if (speakMeaningsOn) 1900L else AUTO_ADVANCE_MS)
             if (_uiState.value.index == cardIndex) {
                 next()
             }

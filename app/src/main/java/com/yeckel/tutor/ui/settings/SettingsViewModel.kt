@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
 import com.yeckel.tutor.data.OllamaClient
 import com.yeckel.tutor.data.SettingsRepository
+import com.yeckel.tutor.data.TutorConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,8 @@ data class SettingsUiState(
     val language: String = "",
     val vocabLevel: String = "",
     val helpLanguage: String = "",
+    val speakSource: Boolean = false,
+    val speakMeanings: Boolean = false,
     val models: List<String> = emptyList(),
     val loadingModels: Boolean = false,
     val message: String? = null,
@@ -43,6 +46,8 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                     language = config.language.ifBlank { SettingsRepository.DEFAULT_LANGUAGE },
                     vocabLevel = config.vocabLevel.ifBlank { SettingsRepository.DEFAULT_VOCAB_LEVEL },
                     helpLanguage = config.helpLanguage.ifBlank { SettingsRepository.DEFAULT_HELP_LANGUAGE },
+                    speakSource = config.speakSource,
+                    speakMeanings = config.speakMeanings,
                 )
             }
         }
@@ -113,14 +118,29 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         val state = _uiState.value
         viewModelScope.launch {
             container.settings.save(
-                baseUrl = OllamaClient.normalizeBaseUrl(state.baseUrl),
-                apiKey = state.apiKey,
-                model = state.model,
-                language = state.language,
-                vocabLevel = state.vocabLevel,
-                helpLanguage = state.helpLanguage,
+                TutorConfig(
+                    baseUrl = OllamaClient.normalizeBaseUrl(state.baseUrl),
+                    apiKey = state.apiKey,
+                    model = state.model,
+                    language = state.language,
+                    vocabLevel = state.vocabLevel,
+                    helpLanguage = state.helpLanguage,
+                    speakSource = state.speakSource,
+                    speakMeanings = state.speakMeanings,
+                ),
             )
             _uiState.update { it.copy(message = "Settings saved") }
         }
+    }
+
+    /** Speak switches persist immediately when flipped. */
+    fun toggleSpeakSource(checked: Boolean) {
+        _uiState.update { it.copy(speakSource = checked) }
+        save()
+    }
+
+    fun toggleSpeakMeanings(checked: Boolean) {
+        _uiState.update { it.copy(speakMeanings = checked) }
+        save()
     }
 }
