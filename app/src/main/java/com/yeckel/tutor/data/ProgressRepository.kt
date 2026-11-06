@@ -138,12 +138,13 @@ class ProgressRepository(private val context: Context) {
         }
     }
 
-    /** Caches the help-language meaning of a word (fetched from the model). */
-    suspend fun setTranslation(languageKey: String, word: String, translation: String) {
-        if (translation.isBlank()) return
+    /** Caches help-language meanings of a word (fetched from the model). */
+    suspend fun setMeanings(languageKey: String, word: String, meanings: List<String>) {
+        val clean = meanings.map { it.trim() }.filter { it.isNotBlank() }
+        if (clean.isEmpty()) return
         writeMutex.withLock {
             updateWordLocked(languageKey, word.trim().lowercase()) { it }?.let { updated ->
-                replaceWordLocked(updated.copy(translation = translation.trim()))
+                replaceWordLocked(updated.copy(meanings = clean))
             }
         }
     }

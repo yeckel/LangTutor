@@ -47,7 +47,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.data.SpeechSupport
 import com.yeckel.tutor.data.VocabRepository
+import com.yeckel.tutor.data.meaningList
 import com.yeckel.tutor.rememberAppContainer
+
+private val placeholderMeaningHint = "Meaning in English"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,7 +176,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
 
                         if (state.revealed) {
                             Text(
-                                current.translation?.removePrefix("to ") ?: "(no stored meaning)",
+                                word.meaningList.take(3).ifEmpty { listOf("(none)") }.joinToString(" / "),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontStyle = FontStyle.Italic,
                                 textAlign = TextAlign.Center,
@@ -201,9 +204,15 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                             ) {
                                 OutlinedTextField(
                                     value = state.input,
-                                    onValueChange = viewModel::onInputChange,
+                                    onValueChange = viewModel::onTyped,
                                     label = { Text("Meaning in English") },
                                     singleLine = true,
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                    ),
+                                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                        onDone = { viewModel.checkMeaning() },
+                                    ),
                                     modifier = Modifier.weight(1f),
                                 )
                                 Button(

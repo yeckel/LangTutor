@@ -58,6 +58,36 @@ object SpeechSupport {
         return previous[b.length]
     }
 
+    /** Lowercase tokens of a normalized string. */
+    private fun tokensOf(text: String): List<String> = text.split(" ").filter { it.isNotBlank() }
+
+    /**
+     * Fast meaning check across several stored senses and learned synonyms:
+     * raw/normalized equality, pronoun-prefixed phrases ("I have" for
+     * "have"), token-superset phrasing and word containment.
+     */
+    fun matchesAnyMeaning(input: String, meanings: List<String>, accepted: List<String> = emptyList()): Boolean {
+        val typed = input.trim().lowercase()
+        if (typed.isEmpty()) return false
+        val typedNorm = normalize(typed)
+        val typedTokens = tokensOf(typedNorm)
+        val candidates = (accepted + meanings).map { it.trim().lowercase() }.filter { it.isNotBlank() }
+        return candidates.any { candidate ->
+            if (typed == candidate) {
+                true
+            } else {
+                val candNorm = normalize(candidate)
+                if (candNorm.isBlank() || typedNorm.isBlank()) {
+                    false
+                } else {
+                    val candTokens = tokensOf(candNorm)
+                    (candTokens.isNotEmpty() && typedTokens.containsAll(candTokens)) ||
+                        (candNorm.length > 5 && typedNorm.contains(candNorm))
+                }
+            }
+        }
+    }
+
     /** Does the spoken transcript plausibly contain the target word? */
     fun spokenMatches(word: String, transcript: String): Boolean {
         val target = normalize(word)
@@ -69,34 +99,6 @@ object SpeechSupport {
                 spokenToken == wanted ||
                     (wanted.length > 4 && spokenToken.startsWith(wanted)) ||
                     (wanted.length >= 6 && editDistance(spokenToken, wanted) <= 1)
-            }
-        }
-    }
-
-    /**
-     * Fast local meaning check: accepts the stored translation, previously
-     * accepted synonyms, pronoun-prefixed phrases ("I have" for "have") and
-     * contained meanings. Everything else goes to the model for judgement.
-     */
-    fun writtenMatchesLocally(
-        input: String,
-        translation: String?,
-        acceptedMeanings: List<String> = emptyList(),
-    ): Boolean {
-        val typed = normalize(input)
-        if (typed.isBlank()) return false
-        val candidates = buildList {
-            if (!translation.isNullOrBlank()) add(translation)
-            addAll(acceptedMeanings)
-        }
-        return candidates.any { candidate ->
-            val expected = normalize(candidate.removePrefix("to "))
-            if (expected.isBlank()) {
-                false
-            } else {
-                typed == expected ||
-                    typed.split(" ").contains(expected) ||
-                    (expected.length > 5 && typed.contains(expected))
             }
         }
     }

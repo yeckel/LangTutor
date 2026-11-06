@@ -15,7 +15,9 @@ data class ProgressWord(
     val language: String,
     val introducedByTutor: Int = 0,
     val usedByLearner: Int = 0,
-    /** Help-language meaning, cached from the model for flash cards. */
+    /** Help-language meanings, cached from the model for flash cards. */
+    val meanings: List<String> = emptyList(),
+    /** Legacy single meaning (kept so old records keep working). */
     val translation: String? = null,
     /** Alternative meanings the learner already got away with (synonyms). */
     val acceptedMeanings: List<String> = emptyList(),
@@ -24,6 +26,10 @@ data class ProgressWord(
     val trainMissed: Int = 0,
     val firstAdded: Long,
 )
+
+/** All cached meanings of the word, newest format plus legacy field. */
+val ProgressWord.meaningList: List<String>
+    get() = (meanings + listOfNotNull(translation)).distinct().filter { it.isNotBlank() }
 
 /** True when the learner has demonstrably used/knows the word. */
 val ProgressWord.isKnown: Boolean
