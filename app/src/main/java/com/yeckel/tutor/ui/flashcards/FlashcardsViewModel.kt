@@ -37,6 +37,7 @@ data class FlashcardUiState(
     val correct: Int = 0,
     val missed: Int = 0,
     val languageName: String = "",
+    val helpLanguage: String = "English",
     val error: String? = null,
 )
 
@@ -69,6 +70,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
     private var languageKey = ""
     private var advanceJob: Job? = null
+    private var judgeJob: Job? = null
 
     init {
         start()
@@ -103,7 +105,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             if (missing.isNotEmpty()) {
                 container.ollama.chatOnce(
                     config.model,
-                    translateMessages(config.language, missing.map { it.word }),
+                    translateMessages(config.language, config.helpLanguage, missing.map { it.word }),
                     expectJson = true,
                 ).fold(
                     onSuccess = { text -> storeTranslations(missing, text) },
@@ -123,7 +125,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
                 .shuffled()
 
             _uiState.update {
-                it.copy(phase = FlashcardPhase.STUDY, words = fresh, languageName = config.language)
+                it.copy(phase = FlashcardPhase.STUDY, words = fresh, languageName = config.language, helpLanguage = config.helpLanguage)
             }
         }
     }
@@ -146,16 +148,28 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
     /**
      * Flow acceleration: while typing, an exact (or phrasing-tolerant) match
-     * with any meaning accepts the card and advances automatically.
+     * with any meaning accepts the card and advances automatically. Anything
+     * else goes to the tutor model automatically after a short typing pause.
      */
     fun onTyped(value: String) {
         onInputChange(value)
         val state = _uiState.value
         val word = current() ?: return
-        if (state.checking || state.revealed || value.isBlank()) return
+        if (state.checking || state.revealed || value.isBlank()) {
+            judgeJob?.cancel()
+            return
+        }
 
         if (SpeechSupport.matchesAnyMeaning(value, word.meaningList, word.acceptedMeanings)) {
+            judgeJob?.cancel()
             acceptMeaning(word, value.trim(), note = null)
+            return
+        }
+
+        judgeJob?.cancel()
+        judgeJob = viewModelScope.launch {
+            delay(TYPE_IDLE_MS)
+            checkMeaning()
         }
     }
 
@@ -163,6 +177,8 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
     /** Enter or Check: judge a non-matching answer with the tutor model. */
     fun checkMeaning() {
+        judgeJob?.cancel()
+        judgeJob = null
         val state = _uiState.value
         val word = current() ?: return
         val answer = state.input.trim()
@@ -185,7 +201,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             val config = container.settings.current()
             container.ollama.chatOnce(
                 config.model,
-                meaningCheckMessages(config.language, word.word, word.meaningList, answer),
+                meaningCheckMessages(config.language, config.helpLanguage, word.word, word.meaningList, answer),
                 expectJson = true,
             ).fold(
                 onSuccess = { text ->
@@ -324,12 +340,12 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     private fun expectedText(word: ProgressWord): String =
         "expected: " + word.meaningList.take(2).ifEmpty { listOf("(none)") }.joinToString(" / ")
 
-    private fun translateMessages(language: String, words: List<String>) = listOf(
+    private fun translateMessages(language: String, helpLanguage: String, words: List<String>) = listOf(
         ChatMessage(
             role = "system",
-            content = "You translate single words from $language into English. " +
+            content = "You translate single words from $language into $helpLanguage. " +
                 "Reply ONLY with JSON of the shape {\"translations\": {\"word\": [\"meaning\"]}} " +
-                "where each value is a JSON array with up to 3 common English meanings, " +
+                "where each value is a JSON array with up to 3 common meanings in $helpLanguage, " +
                 "the most common first. Use short meanings (1-2 words). Words like \"que\" " +
                 "have several distinct senses, include them all (e.g. [\"that\", \"what\"]).",
         ),
@@ -339,26 +355,33 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         ),
     )
 
-    private fun meaningCheckMessages(language: String, word: String, meanings: List<String>, answer: String) =
-        listOf(
-            ChatMessage(
-                role = "system",
-                content = "You are a lenient vocabulary tutor for $language. The learner is " +
-                    "training flash cards. Target word: \"$word\" in $language. Known meanings: " +
-                    meaningsForPrompt(meanings) + ". The learner answered: \"$answer\". " +
-                    "Accept the answer if it is a correct, reasonable English meaning of the word in " +
-                    "ANY of those senses - synonyms are fine (big/huge/large), and pronoun-prefixed " +
-                    "phrasing like \"I have\" for \"tengo\" is fine. Reject only clearly wrong meanings. " +
-                    "Reply ONLY with JSON: {\"correct\": true, \"explanation\": \"1 very short " +
-                    "sentence in English about the answer\"}.",
-            ),
-            ChatMessage(role = "user", content = "Judge the answer now."),
-        )
+    private fun meaningCheckMessages(
+        language: String,
+        helpLanguage: String,
+        word: String,
+        meanings: List<String>,
+        answer: String,
+    ) = listOf(
+        ChatMessage(
+            role = "system",
+            content = "You are a lenient vocabulary tutor for $language. The learner is " +
+                "training flash cards. Target word: \"$word\" in $language. Known meanings: " +
+                meaningsForPrompt(meanings) + ". The learner answered: \"$answer\". " +
+                "Accept the answer if it is a correct, reasonable meaning of the word in " +
+                "ANY of those senses - synonyms are fine (big/huge/large), and pronoun-prefixed " +
+                "phrasing like \"I have\" for \"tengo\" is fine. Articles may be dropped " +
+                "(\"from the\" ~ \"from\"). Reject only clearly wrong meanings. " +
+                "Reply ONLY with JSON: {\"correct\": true, \"explanation\": \"1 very short " +
+                "sentence in $helpLanguage about the answer\"}.",
+        ),
+        ChatMessage(role = "user", content = "Judge the answer now."),
+    )
 
     private fun meaningsForPrompt(meanings: List<String>): String =
         meanings.joinToString(" / ").ifBlank { "(none)" }
 
     private companion object {
         const val AUTO_ADVANCE_MS = 900L
+        const val TYPE_IDLE_MS = 1200L
     }
 }

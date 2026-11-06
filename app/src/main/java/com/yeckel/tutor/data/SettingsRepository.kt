@@ -15,6 +15,7 @@ data class TutorConfig(
     val model: String,
     val language: String,
     val vocabLevel: String,
+    val helpLanguage: String,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -25,6 +26,7 @@ class SettingsRepository(private val context: Context) {
         val MODEL = stringPreferencesKey("model")
         val LANGUAGE = stringPreferencesKey("language")
         val VOCAB_LEVEL = stringPreferencesKey("vocab_level")
+        val HELP_LANGUAGE = stringPreferencesKey("help_language")
     }
 
     val config: Flow<TutorConfig> = context.tutorDataStore.data.map { prefs ->
@@ -34,18 +36,20 @@ class SettingsRepository(private val context: Context) {
             model = prefs[Keys.MODEL] ?: "",
             language = prefs[Keys.LANGUAGE] ?: DEFAULT_LANGUAGE,
             vocabLevel = prefs[Keys.VOCAB_LEVEL] ?: DEFAULT_VOCAB_LEVEL,
+            helpLanguage = prefs[Keys.HELP_LANGUAGE] ?: DEFAULT_HELP_LANGUAGE,
         )
     }
 
     suspend fun current(): TutorConfig = config.first()
 
-    suspend fun save(baseUrl: String, apiKey: String, model: String, language: String, vocabLevel: String) {
+    suspend fun save(baseUrl: String, apiKey: String, model: String, language: String, vocabLevel: String, helpLanguage: String) {
         context.tutorDataStore.edit { prefs ->
             prefs[Keys.BASE_URL] = baseUrl.trim()
             prefs[Keys.API_KEY] = apiKey.trim()
             prefs[Keys.MODEL] = model.trim()
             prefs[Keys.LANGUAGE] = language.trim()
             prefs[Keys.VOCAB_LEVEL] = vocabLevel.trim()
+            prefs[Keys.HELP_LANGUAGE] = helpLanguage.trim()
         }
     }
 
@@ -54,6 +58,7 @@ class SettingsRepository(private val context: Context) {
         const val DEFAULT_BASE_URL = "http://10.0.2.2:11434"
         const val DEFAULT_LANGUAGE = "Spanish"
         const val DEFAULT_VOCAB_LEVEL = "A1"
+        const val DEFAULT_HELP_LANGUAGE = "English"
 
         /** Tiered known-word levels, in learning order. */
         val VOCAB_LEVELS = listOf("A0", "A1", "A2", "B1", "Off")

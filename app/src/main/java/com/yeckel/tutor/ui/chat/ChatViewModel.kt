@@ -190,6 +190,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             content = tutorPrompt(
                 article = currentArticle,
                 language = language,
+                helpLanguage = config.helpLanguage,
                 vocabWords = vocabWords,
                 difficulty = _uiState.value.difficulty,
                 extraKnown = knownNow,

@@ -10,6 +10,7 @@ import com.yeckel.tutor.data.Difficulty
 fun tutorPrompt(
     article: Article,
     language: String,
+    helpLanguage: String,
     vocabWords: List<String>,
     difficulty: Difficulty,
     extraKnown: List<String>,
@@ -24,7 +25,7 @@ fun tutorPrompt(
             appendLine("Vocabulary rules:")
             appendLine("- Write mostly with words from this list, plus basic grammar words you are sure the learner knows.")
             appendLine("- Introduce at most 1-2 NEW words per message that are not in the list.")
-            appendLine("- A new word is allowed only if its meaning is clear from the surrounding context, or if you add a short gloss right after it in round brackets, written in English, e.g. el abrigo (coat).")
+            appendLine("- A new word is allowed only if its meaning is clear from the surrounding context, or if you add a short gloss right after it in round brackets, written in the learner's help language ($helpLanguage), e.g. el abrigo (coat).")
             appendLine("- Prefer rephrasing with known words to difficult vocabulary.")
             appendLine("- Reuse recently introduced new words soon, so the learner can absorb them.")
         }

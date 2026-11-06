@@ -7,12 +7,13 @@ import java.util.Locale
 object SpeechSupport {
 
     /** Speech recognition locales per supported language key. */
-    fun localeFor(languageKey: String): Locale? = when (languageKey) {
+    fun localeFor(languageKey: String?): Locale? = when (languageKey) {
         "es" -> Locale("es", "ES")
         "en" -> Locale("en", "US")
         "de" -> Locale("de", "DE")
         "fr" -> Locale("fr", "FR")
         "it" -> Locale("it", "IT")
+        "cs" -> Locale("cs", "CZ")
         else -> null
     }
 
@@ -26,6 +27,9 @@ object SpeechSupport {
         "is", "are", "am", "yo", "mi", "tu", "usted",
     )
 
+    /** Articles that never change a meaning (dropped anywhere in a phrase). */
+    private val ARTICLES_ANYWHERE = setOf("the", "a", "an")
+
     /** Lowercase, strip accents and punctuation, drop leading filler words. */
     fun normalize(text: String): String {
         val flat = Normalizer.normalize(text.trim().lowercase(), Normalizer.Form.NFD)
@@ -34,7 +38,8 @@ object SpeechSupport {
             .trim()
         val tokens = flat.split(" ").filter { it.isNotBlank() }
         val withoutFiller = tokens.dropWhile { it in LEADING_FILLER }
-        return withoutFiller.joinToString(" ").ifBlank { flat }
+        val withoutArticles = withoutFiller.filterNot { it in ARTICLES_ANYWHERE }
+        return withoutArticles.joinToString(" ").ifBlank { flat }
     }
 
     /** Small edit distance (typing/ASR slips). */

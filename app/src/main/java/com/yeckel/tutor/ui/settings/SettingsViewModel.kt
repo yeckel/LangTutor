@@ -21,6 +21,7 @@ data class SettingsUiState(
     val model: String = "",
     val language: String = "",
     val vocabLevel: String = "",
+    val helpLanguage: String = "",
     val models: List<String> = emptyList(),
     val loadingModels: Boolean = false,
     val message: String? = null,
@@ -41,6 +42,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                     model = config.model,
                     language = config.language.ifBlank { SettingsRepository.DEFAULT_LANGUAGE },
                     vocabLevel = config.vocabLevel.ifBlank { SettingsRepository.DEFAULT_VOCAB_LEVEL },
+                    helpLanguage = config.helpLanguage.ifBlank { SettingsRepository.DEFAULT_HELP_LANGUAGE },
                 )
             }
         }
@@ -59,6 +61,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     fun onLanguageChange(value: String) =
         _uiState.update { it.copy(language = value, message = null) }
+
+    fun onHelpLanguageChange(value: String) =
+        _uiState.update { it.copy(helpLanguage = value, message = null) }
 
     fun onVocabLevelChange(value: String) =
         _uiState.update { it.copy(vocabLevel = value, message = null) }
@@ -113,6 +118,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                 model = state.model,
                 language = state.language,
                 vocabLevel = state.vocabLevel,
+                helpLanguage = state.helpLanguage,
             )
             _uiState.update { it.copy(message = "Settings saved") }
         }

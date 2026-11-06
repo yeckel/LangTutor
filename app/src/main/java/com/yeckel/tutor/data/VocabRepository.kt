@@ -50,6 +50,8 @@ class VocabRepository(private val context: Context) {
             language.startsWith("german", ignoreCase = true) -> "de"
             language.startsWith("french", ignoreCase = true) -> "fr"
             language.startsWith("italian", ignoreCase = true) -> "it"
+            language.startsWith("czech", ignoreCase = true) ||
+                language.startsWith("cesk", ignoreCase = true) -> "cs"
             else -> null
         }
     }

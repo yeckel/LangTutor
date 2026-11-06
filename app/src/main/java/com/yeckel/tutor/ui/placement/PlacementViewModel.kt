@@ -172,6 +172,7 @@ class PlacementViewModel(private val container: AppContainer) : ViewModel() {
                 model = config.model,
                 language = config.language,
                 vocabLevel = level,
+                helpLanguage = config.helpLanguage,
             )
             for (word in verdict.knownWords.take(20)) {
                 val clean = word.trim().lowercase()

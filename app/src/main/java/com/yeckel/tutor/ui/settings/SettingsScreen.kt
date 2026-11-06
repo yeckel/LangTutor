@@ -136,6 +136,15 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
 
             OutlinedTextField(
+                value = state.helpLanguage,
+                onValueChange = viewModel::onHelpLanguageChange,
+                label = { Text("Your language (help language)") },
+                supportingText = { Text("Your native language - word meanings, glosses and tutor notes.") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
                 value = state.model,
                 onValueChange = viewModel::selectModel,
                 label = { Text("Model") },

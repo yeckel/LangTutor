@@ -205,7 +205,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 OutlinedTextField(
                                     value = state.input,
                                     onValueChange = viewModel::onTyped,
-                                    label = { Text("Meaning in English") },
+                                    label = { Text("Meaning in ${state.helpLanguage.ifBlank { "English" }}") },
                                     singleLine = true,
                                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                         imeAction = androidx.compose.ui.text.input.ImeAction.Done,
