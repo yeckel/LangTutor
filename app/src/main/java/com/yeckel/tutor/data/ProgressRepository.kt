@@ -12,7 +12,8 @@ import kotlinx.serialization.json.Json
 
 /**
  * Persistent learner progress:
- *  - known/learning words per language (augmenting the bundled level lists)
+ *  - known/learning words per language (augmenting the bundled level lists),
+ *    including cached translations and per-word training results
  *  - the active lesson (article + full conversation) for easy continuation
  *
  * Backed by the app DataStore as JSON documents; small enough for JSON while
@@ -91,6 +92,102 @@ class ProgressRepository(private val context: Context) {
                 )
             }
             if (changed) writeWords(words)
+        }
+    }
+
+    /** Adds a word manually (optionally already known). */
+    suspend fun addWord(languageKey: String, word: String, known: Boolean) {
+        val clean = word.trim().lowercase()
+        if (clean.isEmpty()) return
+        writeMutex.withLock {
+            updateWordLocked(languageKey, clean) { existing ->
+                existing ?: ProgressWord(
+                    word = clean,
+                    language = languageKey,
+                    introducedByTutor = 0,
+                    usedByLearner = if (known) 1 else 0,
+                    firstAdded = System.currentTimeMillis(),
+                )
+            }
+        }
+    }
+
+    /** Marks the word known (counted as used) or back to learning. */
+    suspend fun setKnown(languageKey: String, word: String, known: Boolean) {
+        writeMutex.withLock {
+            val clean = word.trim().lowercase()
+            val words = readKnownWords()
+            val existing = words.find { it.word == clean && it.language == languageKey } ?: return@withLock
+            val updated = if (known) {
+                existing.copy(usedByLearner = maxOf(existing.usedByLearner, 1))
+            } else {
+                existing.copy(usedByLearner = 0, trainCorrect = 0)
+            }
+            replaceWordLocked(updated)
+        }
+    }
+
+    suspend fun removeWord(languageKey: String, word: String) {
+        val clean = word.trim().lowercase()
+        writeMutex.withLock {
+            context.tutorDataStore.edit { prefs ->
+                val remaining = decodeList<ProgressWord>(prefs[Keys.PROGRESS_WORDS] ?: "[]")
+                    .filterNot { it.word == clean && it.language == languageKey }
+                prefs[Keys.PROGRESS_WORDS] = json.encodeToString(remaining)
+            }
+        }
+    }
+
+    /** Caches the help-language meaning of a word (fetched from the model). */
+    suspend fun setTranslation(languageKey: String, word: String, translation: String) {
+        if (translation.isBlank()) return
+        writeMutex.withLock {
+            updateWordLocked(languageKey, word.trim().lowercase()) { it }?.let { updated ->
+                replaceWordLocked(updated.copy(translation = translation.trim()))
+            }
+        }
+    }
+
+    suspend fun recordTrainCorrect(languageKey: String, word: String) {
+        writeMutex.withLock {
+            updateWordLocked(languageKey, word.trim().lowercase()) { it }?.let { updated ->
+                replaceWordLocked(
+                    updated.copy(
+                        usedByLearner = updated.usedByLearner + 1,
+                        trainCorrect = updated.trainCorrect + 1,
+                    ),
+                )
+            }
+        }
+    }
+
+    suspend fun recordTrainMissed(languageKey: String, word: String) {
+        writeMutex.withLock {
+            updateWordLocked(languageKey, word.trim().lowercase()) { it }?.let { updated ->
+                replaceWordLocked(updated.copy(trainMissed = updated.trainMissed + 1))
+            }
+        }
+    }
+
+    /** Update-or-create hook used inside the write mutex. */
+    private suspend fun updateWordLocked(
+        languageKey: String,
+        word: String,
+        transform: (ProgressWord?) -> ProgressWord?,
+    ): ProgressWord? {
+        val words = readKnownWords()
+        val existing = words.find { it.word == word && it.language == languageKey }
+        val updated = transform(existing) ?: return null
+        val result = updated.copy(word = if (existing != null) existing.word else word)
+        replaceWordLocked(result)
+        return result
+    }
+
+    private suspend fun replaceWordLocked(word: ProgressWord) {
+        context.tutorDataStore.edit { prefs ->
+            val words = (decodeList<ProgressWord>(prefs[Keys.PROGRESS_WORDS] ?: "[]"))
+                .filterNot { it.word == word.word && it.language == word.language }
+            prefs[Keys.PROGRESS_WORDS] = json.encodeToString(words + word)
         }
     }
 

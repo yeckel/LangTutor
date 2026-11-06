@@ -16,6 +16,8 @@ data class ChatRequest(
     val stream: Boolean = true,
     /** Keeps long word lists + long articles inside the model's context window. */
     val options: ChatOptions? = null,
+    /** Non-null forces JSON output (Ollama `format: "json"`). */
+    val format: String? = null,
 )
 
 @Serializable

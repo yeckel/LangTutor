@@ -29,6 +29,14 @@ endpoints behind an authenticated proxy).
   recorded; words the tutor introduces get tracked, words you write yourself
   count as actively known; the home screen shows *Continue last conversation*
   so an app restart drops you back into the lesson mid-conversation.
+- **Placement quiz (Step 3)** — *Find my level*: a short 8-question chat whose
+  final model verdict (JSON) sets your vocabulary level and records the words
+  you used correctly as known.
+- **Words list & flash cards** — *My words*: view every tracked word (status,
+  counts, cached meaning), tap to toggle known/learning, add or delete words,
+  and train them: written meaning checks and *Say it* pronunciation practice
+  (speech recognition in the practice language). Correct answers strengthen
+  the word automatically.
 - **Settings** — Ollama server URL, optional API key, practice language,
   vocabulary level, and model selection (fetched live from the server's model
   list; fetch tests the values currently in the fields, before saving).
@@ -142,12 +150,33 @@ What was built:
   (up to 15) so the tutor deliberately reuses recently introduced vocabulary
   (spaced-repetition lite).
 
-### Step 3 — Placement & level progression
+### Step 3 — ✅ Placement & level entry (shipped)
 
-- A short **placement chat** (5–8 questions) that estimates the starting level
-  instead of forcing a pick.
-- Completing a level unlocks the next tier; conversations report which new
-  words were introduced so progress is visible on a simple stats screen.
+- **Placement chat**: a single model call generates 8 graded questions
+  (A0→B1 ladder), the learner answers, and a second structured call
+  (`format: "json"` + fence-stripping) produces
+  `{level, knownWords[], reason}`.
+- **Apply** clamps the verdict to the supported tiers, saves it as the
+  vocabulary level, and merges the demonstrated words into the tracker
+  (status: known).
+- Helper call channel: `OllamaClient.chatOnce(..., expectJson)` for all
+  structured side-flows (placement + word meanings).
+
+### Step 3b — ✅ Words list, editing & flash-card training (shipped)
+
+- **My words screen**: tracked words per practice language with status
+  (✓ known / • learning), per-word stats and cached meanings; tap toggles
+  known/learning, ✕ deletes, "+ Add a word" for manual entries.
+- **Flash-card training**: shuffled deck of tracked words; meanings are
+  translated once by the configured model and cached in the progress store;
+  per card the learner can
+  - **write** the English meaning (fuzzy match, accent/article tolerant),
+  - **say it** aloud (Android speech recognition localized to the practice
+    language; fuzzy match on the transcript),
+  - or **reveal**; correct answers increment the word's strength counters
+    (`usedByLearner`, `trainCorrect`), misses count as `trainMissed` —
+    the prompt's known-word set updates automatically on the next chat.
+- Requires the `RECORD_AUDIO` permission (requested in context on first use).
 
 ### Step 4 — Voice practice
 
@@ -159,10 +188,11 @@ What was built:
 
 ### Step 5 — Chat UX refinements
 
-- Corrections as distinct rendering (wrong → right → reason), not inline text.
+- Corrections as distinct rendering (wrong → right → reason), not inline text. *(partially shipped: flash cards render per-word state)*
 - Tappable glosses: tap a glossed word → add to a personal word list / show a
   mini explanation card.
-- Persist conversations between app launches; conversation history list.
+- Conversation archive (the *last* lesson already resumes; a full history view
+  is future work).
 - Retry/regenerate button when generation fails or quality disappoints.
 
 ### Step 6 — Robustness & quality

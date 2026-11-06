@@ -2,6 +2,7 @@ package com.yeckel.tutor.ui.start
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,8 @@ import com.yeckel.tutor.rememberAppContainer
 fun StartScreen(
     onStartChat: () -> Unit,
     onOpenSettings: () -> Unit,
+    onFindLevel: () -> Unit,
+    onOpenWords: () -> Unit,
 ) {
     val container = rememberAppContainer()
     val viewModel: StartViewModel = viewModel { StartViewModel(container) }
@@ -90,7 +93,6 @@ fun StartScreen(
                     }
                 }
             }
-
             Spacer(Modifier.height(4.dp))
 
             if (!state.usePasted) {
@@ -176,8 +178,19 @@ fun StartScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            TextButton(onClick = onOpenSettings, modifier = Modifier.align(Alignment.End)) {
-                Text("Settings")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                TextButton(onClick = onFindLevel, modifier = Modifier.weight(1f)) {
+                    Text("Find my level")
+                }
+                TextButton(onClick = onOpenWords, modifier = Modifier.weight(1f)) {
+                    Text("My words")
+                }
+                TextButton(onClick = onOpenSettings) {
+                    Text("Settings")
+                }
             }
         }
     }

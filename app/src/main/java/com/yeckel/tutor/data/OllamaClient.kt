@@ -62,12 +62,48 @@ class OllamaClient(private val settings: SettingsRepository) {
     }
 
     /**
+     * Single-shot (non-streaming) chat completion — for structured helper calls
+     * like placement questions, the placement verdict and word translations.
+     * Set [expectJson] to make Ollama return strictly valid JSON.
+     */
+    suspend fun chatOnce(
+        model: String,
+        messages: List<ChatMessage>,
+        expectJson: Boolean = false,
+    ): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val config = settings.current()
+            val payload = json.encodeToString(
+                ChatRequest(
+                    model = model,
+                    messages = messages,
+                    stream = false,
+                    format = if (expectJson) "json" else null,
+                    options = if (model.endsWith("-cloud", ignoreCase = true)) null else ChatOptions(),
+                ),
+            )
+            val builder = Request.Builder()
+                .url("${normalizeBaseUrl(config.baseUrl)}/api/chat")
+                .post(payload.toRequestBody("application/json".toMediaType()))
+            config.apiKey.takeIf { it.isNotBlank() }?.let {
+                builder.header("Authorization", "Bearer $it")
+            }
+
+            http.newCall(builder.build()).execute().use { response ->
+                if (!response.isSuccessful) error("HTTP ${response.code} from the Ollama server")
+                val body = response.body?.string().orEmpty()
+                json.decodeFromString<ChatChunk>(body).message?.content.orEmpty()
+                    .ifBlank { error("Empty response from the Ollama server") }
+            }
+        }
+    }
+
+    /**
      * Stream a chat completion. Emits [StreamEvent.Delta] for each text piece,
      * then a final [StreamEvent.Done]. Handles both Ollama's NDJSON lines and
      * SSE-style `data:` lines.
      */
-    fun chatStream(model: String, messages: List<ChatMessage>): Flow<StreamEvent> = callbackFlow {
-        val callRef = AtomicReference<Call?>(null)
+    fun chatStream(model: String, messages: List<ChatMessage>): Flow<StreamEvent> = callbackFlow {        val callRef = AtomicReference<Call?>(null)
 
         launch(Dispatchers.IO) {
             try {

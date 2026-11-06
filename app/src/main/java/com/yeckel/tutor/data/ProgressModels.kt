@@ -15,8 +15,17 @@ data class ProgressWord(
     val language: String,
     val introducedByTutor: Int = 0,
     val usedByLearner: Int = 0,
+    /** Help-language meaning, cached from the model for flash cards. */
+    val translation: String? = null,
+    /** Flash-card training results. */
+    val trainCorrect: Int = 0,
+    val trainMissed: Int = 0,
     val firstAdded: Long,
 )
+
+/** True when the learner has demonstrably used/knows the word. */
+val ProgressWord.isKnown: Boolean
+    get() = usedByLearner >= 1
 
 /** One saved chat turn of the active lesson. */
 @Serializable
