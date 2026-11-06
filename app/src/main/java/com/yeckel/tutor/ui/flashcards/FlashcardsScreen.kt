@@ -65,6 +65,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var pendingSpeak by remember { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
 
     val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
@@ -115,21 +116,26 @@ fun FlashcardsScreen(onBack: () -> Unit) {
         recognizer?.setRecognitionListener(object : android.speech.RecognitionListener {
             override fun onReadyForSpeech(params: android.os.Bundle?) {
                 silentRounds = 0
+                listening = true
             }
 
-            override fun onBeginningOfSpeech() {}
+            override fun onEndOfSpeech() {
+                listening = false
+            }
 
             override fun onRmsChanged(rmsdB: Float) {}
 
             override fun onBufferReceived(buffer: ByteArray?) {}
 
-            override fun onEndOfSpeech() {}
+            override fun onBeginningOfSpeech() {}
 
             override fun onError(error: Int) {
+                if (error == android.speech.SpeechRecognizer.ERROR_RECOGNIZER_BUSY) return
                 // Silence/no-speech during auto-listen: retry once, then wait for manual input.
                 if (error == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
                     error == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
                 ) {
+                    listening = false
                     if (silentRounds < 1 && viewModel.uiState.value.autoListen && !viewModel.uiState.value.revealed) {
                         silentRounds += 1
                         mainHandler.postDelayed({
@@ -143,6 +149,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
             }
 
             override fun onResults(results: android.os.Bundle?) {
+                listening = false
                 val best = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 viewModel.onSpoken(best)
             }
@@ -156,12 +163,13 @@ fun FlashcardsScreen(onBack: () -> Unit) {
         }
     }
 
+
     // The card cycle for spoken practice: speak the word (if switched on), then
     // (when auto-listen is on) start listening once the speech finished.
     LaunchedEffect(
-        state.index, state.phase, state.revealed, state.autoListen, state.speakSource,
+        state.index, state.phase, state.revealed, state.autoListen, state.speakSource, state.paused,
     ) {
-        if (state.phase != FlashcardPhase.STUDY || state.revealed || !state.autoListen) {
+        if (state.phase != FlashcardPhase.STUDY || state.revealed || !state.autoListen || state.paused) {
             recognizer?.stopListening()
             return@LaunchedEffect
         }
@@ -187,8 +195,8 @@ fun FlashcardsScreen(onBack: () -> Unit) {
 
     // Auto-speak the source word on every new card when auto-listen is off
     // (with auto-listen the orchestrator above does the speaking).
-    LaunchedEffect(state.index, state.phase) {
-        if (state.phase == FlashcardPhase.STUDY && state.speakSource && !state.revealed && !state.autoListen) {
+    LaunchedEffect(state.index, state.phase, state.paused) {
+        if (state.phase == FlashcardPhase.STUDY && state.speakSource && !state.revealed && !state.autoListen && !state.paused) {
             val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
             SpeechSupport.localeFor(state.languageKey)?.toLanguageTag()?.let { tag ->
                 container.tts.speak(word.word, tag)
@@ -197,8 +205,8 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     }
 
     // Auto-speak the meaning when it is revealed.
-    LaunchedEffect(state.index, state.revealed) {
-        if (state.phase == FlashcardPhase.STUDY && state.revealed && state.speakMeanings) {
+    LaunchedEffect(state.index, state.revealed, state.paused) {
+        if (state.phase == FlashcardPhase.STUDY && state.revealed && state.speakMeanings && !state.paused) {
             val word = state.words.getOrNull(state.index) ?: return@LaunchedEffect
             val meaning = word.meaningList.firstOrNull() ?: return@LaunchedEffect
             val tag = SpeechSupport.localeFor(
@@ -238,6 +246,11 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = viewModel::togglePause, enabled = state.phase == FlashcardPhase.STUDY) {
+                        Text(if (state.paused) "▶ Resume" else "⏸ Pause")
                     }
                 },
             )
@@ -298,6 +311,20 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     word?.let { current ->
+                        if (listening && !state.paused) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                PulsingDot()
+                                Text(
+                                    "Listening…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+
                         if (!state.revealed) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

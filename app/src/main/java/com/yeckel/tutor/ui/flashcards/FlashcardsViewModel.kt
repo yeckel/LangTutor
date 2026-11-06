@@ -42,6 +42,7 @@ data class FlashcardUiState(
     val speakSource: Boolean = false,
     val speakMeanings: Boolean = false,
     val autoListen: Boolean = false,
+    val paused: Boolean = false,
     val error: String? = null,
 )
 
@@ -291,6 +292,15 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             val config = container.settings.current()
             container.settings.save(config.copy(autoListen = checked))
+        }
+    }
+
+    /** Pauses or resumes the spoken card cycle (speech + listening). */
+    fun togglePause() {
+        val paused = !_uiState.value.paused
+        _uiState.update { it.copy(paused = paused) }
+        if (paused) {
+            container.tts.stop()
         }
     }
 
