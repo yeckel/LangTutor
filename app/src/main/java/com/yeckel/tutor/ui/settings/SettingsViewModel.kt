@@ -1,0 +1,112 @@
+package com.yeckel.tutor.ui.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.yeckel.tutor.AppContainer
+import com.yeckel.tutor.data.OllamaClient
+import com.yeckel.tutor.data.SettingsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class SettingsUiState(
+    val baseUrl: String = "",
+    val apiKey: String = "",
+    val model: String = "",
+    val language: String = "",
+    val vocabLevel: String = "",
+    val models: List<String> = emptyList(),
+    val loadingModels: Boolean = false,
+    val message: String? = null,
+)
+
+class SettingsViewModel(private val container: AppContainer) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val config = container.settings.config.first()
+            _uiState.update {
+                it.copy(
+                    baseUrl = config.baseUrl.ifBlank { SettingsRepository.DEFAULT_BASE_URL },
+                    apiKey = config.apiKey,
+                    model = config.model,
+                    language = config.language.ifBlank { SettingsRepository.DEFAULT_LANGUAGE },
+                    vocabLevel = config.vocabLevel.ifBlank { SettingsRepository.DEFAULT_VOCAB_LEVEL },
+                )
+            }
+        }
+    }
+
+    fun onBaseUrlChange(value: String) =
+        _uiState.update { it.copy(baseUrl = value, message = null) }
+
+    fun onApiKeyChange(value: String) =
+        _uiState.update { it.copy(apiKey = value, message = null) }
+
+    fun onLanguageChange(value: String) =
+        _uiState.update { it.copy(language = value, message = null) }
+
+    fun onVocabLevelChange(value: String) =
+        _uiState.update { it.copy(vocabLevel = value, message = null) }
+
+    fun selectModel(name: String) =
+        _uiState.update { it.copy(model = name, message = null) }
+
+    fun refreshModels() {
+        val current = _uiState.value
+        if (current.loadingModels) return
+
+        _uiState.update { it.copy(loadingModels = true, message = null) }
+
+        viewModelScope.launch {
+            // Test with the values as currently shown in the fields, so the
+            // user can verify a new server URL without saving it first.
+            container.ollama.listModels(
+                baseUrlOverride = OllamaClient.normalizeBaseUrl(current.baseUrl),
+                apiKeyOverride = current.apiKey,
+            ).fold(
+                onSuccess = { models ->
+                    _uiState.update {
+                        it.copy(
+                            models = models,
+                            loadingModels = false,
+                            message = if (models.isEmpty()) {
+                                "No models are installed on that server."
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            loadingModels = false,
+                            message = e.message ?: "Could not reach the Ollama server",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun save() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            container.settings.save(
+                baseUrl = OllamaClient.normalizeBaseUrl(state.baseUrl),
+                apiKey = state.apiKey,
+                model = state.model,
+                language = state.language,
+                vocabLevel = state.vocabLevel,
+            )
+            _uiState.update { it.copy(message = "Settings saved") }
+        }
+    }
+}
