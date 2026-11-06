@@ -9,6 +9,7 @@ import com.yeckel.tutor.data.Difficulty
 import com.yeckel.tutor.data.LessonProgress
 import com.yeckel.tutor.data.LessonTurn
 import com.yeckel.tutor.data.StreamEvent
+import com.yeckel.tutor.data.SpeechSupport
 import com.yeckel.tutor.data.VocabRepository
 import com.yeckel.tutor.data.tokenize
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,8 @@ data class ChatUiState(
     val articleTitle: String = "",
     val vocabLabel: String = "",
     val difficulty: Difficulty = Difficulty.JUST_RIGHT,
+    val readAloud: Boolean = false,
+    val languageKey: String = "",
     val messages: List<UiMessage> = emptyList(),
     val input: String = "",
     val busy: Boolean = false,
@@ -56,6 +59,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     private var vocabLevel: String = ""
     private var vocabWords: List<String> = emptyList()
     private var languageKey: String = ""
+    private var speakBuffer: StringBuilder = StringBuilder()
+    private var firstUtteranceOfReply = false
     private var history: MutableList<ChatMessage> = mutableListOf()
 
     /**
@@ -94,6 +99,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                 articleTitle = lesson.title,
                 vocabLabel = vocabLabel(),
                 difficulty = difficulty,
+                readAloud = container.settings.current().readAloud,
+                languageKey = languageKey,
                 messages = history.map { UiMessage(it.role, it.content) },
                 continuing = true,
             )
@@ -110,9 +117,22 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    /** Speaker toggle in the chat top bar; persists immediately. */
+    fun toggleReadAloud(checked: Boolean) {
+        _uiState.update { it.copy(readAloud = checked) }
+        viewModelScope.launch {
+            val config = container.settings.current()
+            container.settings.save(config.copy(readAloud = checked))
+        }
+    }
+
     fun send() {
         val text = _uiState.value.input.trim()
         if (text.isEmpty() || _uiState.value.busy) return
+
+        // Stop any ongoing reading so the new exchange starts in silence.
+        container.tts.stop()
+        speakBuffer = StringBuilder()
 
         history.add(ChatMessage(role = "user", content = text))
         _uiState.update {
@@ -158,6 +178,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             articleTitle = article.title,
             vocabLabel = vocabLabel(),
             difficulty = Difficulty.JUST_RIGHT,
+            readAloud = config.readAloud,
+            languageKey = languageKey,
         )
         _uiState.update { it.copy(busy = true) }
         generate()
@@ -202,11 +224,14 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         _uiState.update { it.copy(messages = it.messages + UiMessage("assistant", "")) }
 
         val buffer = StringBuilder()
+        speakBuffer = StringBuilder()
+        firstUtteranceOfReply = _uiState.value.readAloud
         try {
             container.ollama.chatStream(config.model, messagesForModel).collect { event ->
                 when (event) {
                     is StreamEvent.Delta -> {
                         buffer.append(event.text)
+                        speakProgressive(event.text)
                         _uiState.update { state ->
                             val messages = state.messages.toMutableList()
                             messages[messages.lastIndex] = UiMessage("assistant", buffer.toString())
@@ -223,6 +248,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         } finally {
             val reply = buffer.toString()
             if (reply.isNotEmpty()) {
+                speakRemaining()
                 history.add(ChatMessage(role = "assistant", content = reply))
                 recordTurn("assistant", reply)
                 container.progress.recordAssistantMessage(languageKey, vocabWords.toSet(), reply)
@@ -252,6 +278,37 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     private fun languageKeyFor(language: String): String =
         VocabRepository.languageCode(language) ?: language.lowercase()
+
+    /** Progressive read-aloud: queue one utterance per finished sentence. */
+    private fun speakProgressive(deltaText: String) {
+        if (!_uiState.value.readAloud) return
+        speakBuffer.append(deltaText)
+
+        val text = speakBuffer.toString()
+        val sentenceEnd = Regex("[.!?…](?=\\s|$)").find(text)
+        if (sentenceEnd != null) {
+            val cut = sentenceEnd.range.last + 1
+            val utterance = text.take(cut).trim()
+            speakBuffer = StringBuilder(text.substring(cut))
+            if (utterance.isNotBlank()) {
+                val tag = SpeechSupport.localeFor(languageKey)?.toLanguageTag() ?: return
+                container.tts.speak(utterance, tag, flush = firstUtteranceOfReply)
+                firstUtteranceOfReply = false
+            }
+        }
+    }
+
+    /** Speaks whatever sentence fragment is left when the reply ends. */
+    private fun speakRemaining() {
+        if (!_uiState.value.readAloud) return
+        val rest = speakBuffer.toString().trim()
+        speakBuffer = StringBuilder()
+        if (rest.isNotBlank()) {
+            val tag = SpeechSupport.localeFor(languageKey)?.toLanguageTag() ?: return
+            container.tts.speak(rest, tag, flush = false)
+        }
+        firstUtteranceOfReply = false
+    }
 
     private companion object {
         const val MAX_HISTORY = 12

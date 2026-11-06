@@ -150,6 +150,21 @@ fun SettingsScreen(onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
+                    Text("Read replies aloud")
+                    Text(
+                        "The tutor's chat replies are spoken progressively, in the practice language.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = state.readAloud, onCheckedChange = viewModel::toggleReadAloud)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text("Speak words automatically")
                     Text(
                         "Each flash card is spoken in the practice language.",

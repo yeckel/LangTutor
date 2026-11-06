@@ -23,8 +23,10 @@ data class SettingsUiState(
     val language: String = "",
     val vocabLevel: String = "",
     val helpLanguage: String = "",
+    val readAloud: Boolean = false,
     val speakSource: Boolean = false,
     val speakMeanings: Boolean = false,
+    val autoListen: Boolean = false,
     val models: List<String> = emptyList(),
     val loadingModels: Boolean = false,
     val message: String? = null,
@@ -46,6 +48,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                     language = config.language.ifBlank { SettingsRepository.DEFAULT_LANGUAGE },
                     vocabLevel = config.vocabLevel.ifBlank { SettingsRepository.DEFAULT_VOCAB_LEVEL },
                     helpLanguage = config.helpLanguage.ifBlank { SettingsRepository.DEFAULT_HELP_LANGUAGE },
+                    readAloud = config.readAloud,
                     speakSource = config.speakSource,
                     speakMeanings = config.speakMeanings,
                 )
@@ -125,12 +128,20 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                     language = state.language,
                     vocabLevel = state.vocabLevel,
                     helpLanguage = state.helpLanguage,
+                    readAloud = state.readAloud,
                     speakSource = state.speakSource,
                     speakMeanings = state.speakMeanings,
+                    autoListen = state.autoListen,
                 ),
             )
             _uiState.update { it.copy(message = "Settings saved") }
         }
+    }
+
+    /** Speaker toggle for chat replies (top bar + settings). */
+    fun toggleReadAloud(checked: Boolean) {
+        _uiState.update { it.copy(readAloud = checked) }
+        save()
     }
 
     /** Speak switches persist immediately when flipped. */

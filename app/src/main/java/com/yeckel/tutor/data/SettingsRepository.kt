@@ -17,6 +17,8 @@ data class TutorConfig(
     val language: String,
     val vocabLevel: String,
     val helpLanguage: String,
+    /** Speak the tutor's chat replies progressively as they stream. */
+    val readAloud: Boolean = false,
     /** Speak each source word when its card appears. */
     val speakSource: Boolean = false,
     /** Speak the meaning when it is revealed. */
@@ -34,6 +36,7 @@ class SettingsRepository(private val context: Context) {
         val LANGUAGE = stringPreferencesKey("language")
         val VOCAB_LEVEL = stringPreferencesKey("vocab_level")
         val HELP_LANGUAGE = stringPreferencesKey("help_language")
+        val READ_ALOUD = booleanPreferencesKey("read_aloud")
         val SPEAK_SOURCE = booleanPreferencesKey("speak_source")
         val SPEAK_MEANINGS = booleanPreferencesKey("speak_meanings")
         val SPEAK_LISTEN = booleanPreferencesKey("speak_listen")
@@ -47,6 +50,7 @@ class SettingsRepository(private val context: Context) {
             language = prefs[Keys.LANGUAGE] ?: DEFAULT_LANGUAGE,
             vocabLevel = prefs[Keys.VOCAB_LEVEL] ?: DEFAULT_VOCAB_LEVEL,
             helpLanguage = prefs[Keys.HELP_LANGUAGE] ?: DEFAULT_HELP_LANGUAGE,
+            readAloud = prefs[Keys.READ_ALOUD] ?: false,
             speakSource = prefs[Keys.SPEAK_SOURCE] ?: false,
             speakMeanings = prefs[Keys.SPEAK_MEANINGS] ?: false,
             autoListen = prefs[Keys.SPEAK_LISTEN] ?: false,
@@ -63,9 +67,9 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.LANGUAGE] = config.language.trim()
             prefs[Keys.VOCAB_LEVEL] = config.vocabLevel.trim()
             prefs[Keys.HELP_LANGUAGE] = config.helpLanguage.trim()
+            prefs[Keys.READ_ALOUD] = config.readAloud
             prefs[Keys.SPEAK_SOURCE] = config.speakSource
             prefs[Keys.SPEAK_MEANINGS] = config.speakMeanings
-            prefs[Keys.SPEAK_LISTEN] = config.autoListen
             prefs[Keys.SPEAK_LISTEN] = config.autoListen
         }
     }

@@ -26,8 +26,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,6 +58,10 @@ fun ChatScreen(onBack: () -> Unit) {
             viewModel.ensureStarted(container.currentArticle)
         }
     }
+
+    // TTS ready for progressive reading; silenced when leaving the chat.
+    LaunchedEffect(Unit) { container.tts.warmup() }
+    DisposableEffect(Unit) { onDispose { container.tts.stop() } }
 
     // Keep the newest text in view, also while streaming into the last bubble.
     val lastContentLength = state.messages.lastOrNull()?.content?.length ?: 0
@@ -91,6 +97,11 @@ fun ChatScreen(onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = { viewModel.toggleReadAloud(!state.readAloud) }) {
+                        Text(if (state.readAloud) "🔊 on" else "🔇 off")
                     }
                 },
             )
