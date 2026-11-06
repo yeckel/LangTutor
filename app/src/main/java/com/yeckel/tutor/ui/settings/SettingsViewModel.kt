@@ -6,9 +6,12 @@ import com.yeckel.tutor.AppContainer
 import com.yeckel.tutor.data.OllamaClient
 import com.yeckel.tutor.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -42,6 +45,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             }
         }
     }
+
+    /** Words tracked from real chats (taught by the tutor, used by the learner). */
+    val trackedWordCount: StateFlow<Int> = container.progress.knownWords
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun onBaseUrlChange(value: String) =
         _uiState.update { it.copy(baseUrl = value, message = null) }

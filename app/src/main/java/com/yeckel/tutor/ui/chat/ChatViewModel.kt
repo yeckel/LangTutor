@@ -5,25 +5,23 @@ import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
 import com.yeckel.tutor.data.Article
 import com.yeckel.tutor.data.ChatMessage
+import com.yeckel.tutor.data.Difficulty
+import com.yeckel.tutor.data.LessonProgress
+import com.yeckel.tutor.data.LessonTurn
 import com.yeckel.tutor.data.StreamEvent
+import com.yeckel.tutor.data.VocabRepository
+import com.yeckel.tutor.data.tokenize
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** role is "user" or "assistant"; the system message is kept separately. */
+/** role is "user" or "assistant"; the system message is built per request. */
 data class UiMessage(
     val role: String,
     val content: String,
 )
-
-/** Comprehension feedback from the learner; nudges the tutor's difficulty. */
-enum class Difficulty {
-    TOO_HARD,
-    JUST_RIGHT,
-    TOO_EASY,
-}
 
 data class ChatUiState(
     val articleTitle: String = "",
@@ -32,82 +30,84 @@ data class ChatUiState(
     val messages: List<UiMessage> = emptyList(),
     val input: String = "",
     val busy: Boolean = false,
+    val continuing: Boolean = false,
     val error: String? = null,
 )
 
 /**
- * Runs the tutoring conversation with vocabulary control:
- * the active known-word list (per level) is embedded in the system prompt and
- * comprehension feedback nudges the difficulty between requests.
- * Article context + the last [MAX_HISTORY] turns are sent on every request.
+ * Runs the tutoring conversation with vocabulary control and progress
+ * tracking:
+ *  - the active known-word list (per level) is embedded in the system prompt,
+ *    extended with words the learner already used (progress store);
+ *  - every visible turn is recorded so the lesson survives app restarts;
+ *  - comprehension feedback nudges the difficulty between requests.
  */
 class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    private var systemMessage: ChatMessage? = null
-    private var history: MutableList<ChatMessage> = mutableListOf()
     private var loadedArticleUrl: String? = null
 
-    // Prompt inputs, cached when the conversation starts so the prompt can be
-    // rebuilt on the fly (e.g. when the learner reports the difficulty).
+    // Prompt inputs, cached so the system message can be rebuilt per request.
+    private var lessonId: Long = 0
     private var article: Article? = null
     private var language: String = ""
     private var vocabLevel: String = ""
     private var vocabWords: List<String> = emptyList()
+    private var languageKey: String = ""
+    private var history: MutableList<ChatMessage> = mutableListOf()
 
     /**
-     * Called when the chat screen opens. (Re)starts the conversation when the
-     * article changed since last time.
+     * Called when the chat screen opens with a freshly loaded article:
+     * starts a new, recorded lesson.
      */
     fun ensureStarted(article: Article?) {
         if (article == null || loadedArticleUrl == article.url) return
+        viewModelScope.launch { startLessonInternal(article) }
+    }
 
-        loadedArticleUrl = article.url
-        history = mutableListOf()
-        systemMessage = null
-
-        _uiState.value = ChatUiState(articleTitle = article.title)
-
+    /** Called when the chat screen opens via "Continue last conversation". */
+    fun continueLast() {
         viewModelScope.launch {
+            val lesson = container.progress.readLesson() ?: return@launch
+            if (lesson.url == loadedArticleUrl) return@launch // already showing it
+
+            loadedArticleUrl = lesson.url
+            article = Article(lesson.url, lesson.title, lesson.text)
+            lessonId = lesson.id
+
             val config = container.settings.current()
-            this@ChatViewModel.article = article
-            this@ChatViewModel.language = config.language
-            this@ChatViewModel.vocabLevel = config.vocabLevel
-            this@ChatViewModel.vocabWords = container.vocab.wordsFor(config.language, config.vocabLevel)
+            language = lesson.language.ifBlank { config.language }
+            vocabLevel = lesson.vocabLevel.ifBlank { config.vocabLevel }
+            vocabWords = container.vocab.wordsFor(language, vocabLevel)
+            languageKey = languageKeyFor(language)
 
-            systemMessage = buildSystemPrompt(Difficulty.JUST_RIGHT)
+            history = lesson.turns
+                .map { ChatMessage(role = it.role, content = it.content) }
+                .toMutableList()
 
-            _uiState.update {
-                it.copy(
-                    vocabLabel = if (vocabWords.isEmpty()) {
-                        "simple vocabulary"
-                    } else {
-                        "$vocabLevel vocabulary · ${config.language}"
-                    },
-                )
-            }
+            val difficulty = runCatching { Difficulty.valueOf(lesson.difficulty) }
+                .getOrDefault(Difficulty.JUST_RIGHT)
 
-            history.add(
-                ChatMessage(
-                    role = "user",
-                    content = "Begin the conversation now: greet the user briefly and ask your first question about the article.",
-                ),
+            _uiState.value = ChatUiState(
+                articleTitle = lesson.title,
+                vocabLabel = vocabLabel(),
+                difficulty = difficulty,
+                messages = history.map { UiMessage(it.role, it.content) },
+                continuing = true,
             )
-            _uiState.update { it.copy(busy = true) }
-            generate()
         }
     }
 
     fun onInputChange(value: String) = _uiState.update { it.copy(input = value, error = null) }
 
     fun onDifficultyChange(newDifficulty: Difficulty) {
-        if (_uiState.value.busy) {
-            return
-        }
-        systemMessage = buildSystemPrompt(newDifficulty)
+        if (_uiState.value.busy) return
         _uiState.update { it.copy(difficulty = newDifficulty, error = null) }
+        viewModelScope.launch {
+            container.progress.updateLessonDifficulty(lessonId, newDifficulty.name)
+        }
     }
 
     fun send() {
@@ -118,13 +118,54 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         _uiState.update {
             it.copy(input = "", messages = it.messages + UiMessage("user", text), busy = true)
         }
+        recordTurn("user", text)
 
         viewModelScope.launch { generate() }
     }
 
-    private suspend fun generate() {
-        val system = systemMessage ?: return
+    private suspend fun startLessonInternal(article: Article) {
         val config = container.settings.current()
+        loadedArticleUrl = article.url
+        this.article = article
+
+        language = config.language
+        vocabLevel = config.vocabLevel
+        vocabWords = container.vocab.wordsFor(language, vocabLevel)
+        languageKey = languageKeyFor(language)
+
+        val lesson = LessonProgress(
+            id = System.currentTimeMillis(),
+            url = article.url,
+            title = article.title,
+            text = article.text,
+            language = language,
+            vocabLevel = vocabLevel,
+            difficulty = Difficulty.JUST_RIGHT.name,
+            turns = emptyList(),
+            updatedAt = System.currentTimeMillis(),
+        )
+        lessonId = lesson.id
+        container.progress.startLesson(lesson)
+
+        history = mutableListOf(
+            ChatMessage(
+                role = "user",
+                content = "Begin the conversation now: greet the user briefly and ask your first question about the article.",
+            ),
+        )
+        // The hidden starter stays in memory only; visible turns get recorded.
+        _uiState.value = ChatUiState(
+            articleTitle = article.title,
+            vocabLabel = vocabLabel(),
+            difficulty = Difficulty.JUST_RIGHT,
+        )
+        _uiState.update { it.copy(busy = true) }
+        generate()
+    }
+
+    private suspend fun generate() {
+        val config = container.settings.current()
+        val currentArticle = article ?: return
 
         if (config.model.isBlank()) {
             _uiState.update {
@@ -133,13 +174,35 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             return
         }
 
-        val request = listOf(system) + history.takeLast(MAX_HISTORY)
+        val progressWords = container.progress.readKnownWords()
+            .filter { it.language == languageKey }
+        val knownNow = progressWords
+            .filter { it.usedByLearner >= 1 }
+            .map { it.word }
+            .takeLast(EXTRA_KNOWN_LIMIT)
+        val taught = progressWords
+            .filter { it.introducedByTutor >= 1 && it.usedByLearner == 0 }
+            .map { it.word }
+            .takeLast(TAUGHT_LIMIT)
+
+        val system = ChatMessage(
+            role = "system",
+            content = tutorPrompt(
+                article = currentArticle,
+                language = language,
+                vocabWords = vocabWords,
+                difficulty = _uiState.value.difficulty,
+                extraKnown = knownNow,
+                beingTaught = taught,
+            ),
+        )
+        val messagesForModel = listOf(system) + history.takeLast(MAX_HISTORY)
 
         _uiState.update { it.copy(messages = it.messages + UiMessage("assistant", "")) }
 
         val buffer = StringBuilder()
         try {
-            container.ollama.chatStream(config.model, request).collect { event ->
+            container.ollama.chatStream(config.model, messagesForModel).collect { event ->
                 when (event) {
                     is StreamEvent.Delta -> {
                         buffer.append(event.text)
@@ -157,84 +220,41 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         } catch (e: Exception) {
             _uiState.update { it.copy(error = e.message ?: "The request failed") }
         } finally {
-            if (buffer.isNotEmpty()) {
-                history.add(ChatMessage(role = "assistant", content = buffer.toString()))
+            val reply = buffer.toString()
+            if (reply.isNotEmpty()) {
+                history.add(ChatMessage(role = "assistant", content = reply))
+                recordTurn("assistant", reply)
+                container.progress.recordAssistantMessage(languageKey, vocabWords.toSet(), reply)
             }
             _uiState.update { it.copy(busy = false) }
         }
     }
 
-    private fun buildSystemPrompt(difficulty: Difficulty): ChatMessage {
-        val a = article ?: return ChatMessage("system", "You are a friendly, encouraging tutor.")
-        return ChatMessage(
-            role = "system",
-            content = tutorPrompt(a, language, vocabWords, difficulty),
-        )
+    private fun recordTurn(role: String, content: String) {
+        val turn = LessonTurn(role, content, System.currentTimeMillis())
+        viewModelScope.launch {
+            container.progress.appendTurn(lessonId, turn)
+        }
+        if (role == "user") {
+            viewModelScope.launch {
+                container.progress.recordLearnerMessage(languageKey, vocabWords.toSet(), content)
+            }
+        }
     }
+
+    private fun vocabLabel(): String =
+        if (vocabWords.isEmpty()) {
+            "simple vocabulary"
+        } else {
+            "$vocabLevel vocabulary · ${language.ifBlank { "?" }}"
+        }
+
+    private fun languageKeyFor(language: String): String =
+        VocabRepository.languageCode(language) ?: language.lowercase()
 
     private companion object {
         const val MAX_HISTORY = 12
+        const val EXTRA_KNOWN_LIMIT = 150
+        const val TAUGHT_LIMIT = 15
     }
-}
-
-private fun tutorPrompt(
-    article: Article,
-    language: String,
-    vocabWords: List<String>,
-    difficulty: Difficulty,
-): String {
-    val vocabRules = if (vocabWords.isNotEmpty()) {
-        """
-        Known-vocabulary control.
-        The learner knows the words in this list:
-        ${vocabWords.joinToString(", ")}
-
-        Vocabulary rules:
-        - Write mostly with words from this list, plus basic grammar words you are sure the learner knows.
-        - Introduce at most 1-2 NEW words per message that are not in the list.
-        - A new word is allowed only if its meaning is clear from the surrounding context, or if you add a short gloss right after it in round brackets, written in English, e.g. el abrigo (coat).
-        - Prefer rephrasing with known words to difficult vocabulary.
-        - Reuse recently introduced new words soon, so the learner can absorb them.
-        """.trimIndent()
-    } else {
-        """
-        Vocabulary control: the exact known-word list is unavailable for this language.
-        Use very simple, high-frequency vocabulary suitable for a beginner (roughly A1 level),
-        keep sentences short, and gloss any harder word in round brackets with its English meaning.
-        """.trimIndent()
-    }
-
-    val difficultyRules = when (difficulty) {
-        Difficulty.TOO_HARD ->
-            "The learner says the conversation is too hard right now. Simplify: short sentences, " +
-                "at most ONE new word per message (fully glossed), and rephrase with known words instead of adding vocabulary."
-
-        Difficulty.JUST_RIGHT ->
-            "The learner says the current difficulty is just right; keep this level steady."
-
-        Difficulty.TOO_EASY ->
-            "The learner says it feels too easy. You may use 3-5 new words per message " +
-                "(still glossed or clear from context) and slightly longer, richer sentences."
-    }
-
-    return """
-        You are a friendly language tutor. The user is a learner of $language.
-
-        Rules:
-        - Write every reply in $language only, with vocabulary an intermediate learner can follow.
-        - Never switch to English, even if the user writes in English; model correct, simple $language instead.
-        - Topic of this conversation: the article below.
-        - Keep replies short (2-4 sentences).
-        - End every reply with exactly ONE question that continues the conversation about the article.
-        - When the user writes an answer: if it contains mistakes (grammar, spelling or word choice), first add a short correction block. Start it with the $language word for "Correction" (in Spanish: "Corrección"), then list up to three fixes in the form "wrong -> right", each with a one-line explanation in $language. After the corrections, respond to the content of what the user said and ask your next question.
-        - Be encouraging. Praise good phrases occasionally.
-
-        $vocabRules
-
-        Adaptive difficulty: $difficultyRules
-
-        Article: "${article.title}"
-
-        ${article.text}
-    """.trim() + "\n"
 }

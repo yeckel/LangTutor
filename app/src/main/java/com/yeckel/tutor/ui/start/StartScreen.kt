@@ -42,6 +42,7 @@ fun StartScreen(
     val container = rememberAppContainer()
     val viewModel: StartViewModel = viewModel { StartViewModel(container) }
     val state by viewModel.uiState.collectAsState()
+    val lastLesson by viewModel.lastLesson.collectAsState()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -59,6 +60,36 @@ fun StartScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            lastLesson?.let { lesson ->
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            "Continue last conversation",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(lesson.title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                        Text(
+                            "${lesson.turns.size} messages · ${lesson.vocabLevel} · ${lesson.language}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(
+                            onClick = {
+                                viewModel.continueLastLesson()
+                                onStartChat()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Continue")
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(4.dp))
 

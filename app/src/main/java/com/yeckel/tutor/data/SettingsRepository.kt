@@ -3,12 +3,10 @@ package com.yeckel.tutor.data
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.yeckel.tutor.data.tutorDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-
-private val Context.dataStore by preferencesDataStore(name = "tutor_settings")
 
 /** User configuration for server connection and tutoring setup. */
 data class TutorConfig(
@@ -29,7 +27,7 @@ class SettingsRepository(private val context: Context) {
         val VOCAB_LEVEL = stringPreferencesKey("vocab_level")
     }
 
-    val config: Flow<TutorConfig> = context.dataStore.data.map { prefs ->
+    val config: Flow<TutorConfig> = context.tutorDataStore.data.map { prefs ->
         TutorConfig(
             baseUrl = prefs[Keys.BASE_URL] ?: DEFAULT_BASE_URL,
             apiKey = prefs[Keys.API_KEY] ?: "",
@@ -42,7 +40,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun current(): TutorConfig = config.first()
 
     suspend fun save(baseUrl: String, apiKey: String, model: String, language: String, vocabLevel: String) {
-        context.dataStore.edit { prefs ->
+        context.tutorDataStore.edit { prefs ->
             prefs[Keys.BASE_URL] = baseUrl.trim()
             prefs[Keys.API_KEY] = apiKey.trim()
             prefs[Keys.MODEL] = model.trim()

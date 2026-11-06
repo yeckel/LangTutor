@@ -128,6 +128,13 @@ fun SettingsScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            val tracked by viewModel.trackedWordCount.collectAsState()
+            Text(
+                "Tracked words from your chats: $tracked",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             OutlinedTextField(
                 value = state.model,
                 onValueChange = viewModel::selectModel,

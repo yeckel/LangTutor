@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.rememberAppContainer
+import com.yeckel.tutor.data.Difficulty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +52,12 @@ fun ChatScreen(onBack: () -> Unit) {
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        viewModel.ensureStarted(container.currentArticle)
+        if (container.pendingContinue) {
+            container.pendingContinue = false
+            viewModel.continueLast()
+        } else {
+            viewModel.ensureStarted(container.currentArticle)
+        }
     }
 
     // Keep the newest text in view, also while streaming into the last bubble.

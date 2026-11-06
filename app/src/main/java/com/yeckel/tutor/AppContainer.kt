@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.yeckel.tutor.data.Article
 import com.yeckel.tutor.data.ArticleFetcher
 import com.yeckel.tutor.data.OllamaClient
+import com.yeckel.tutor.data.ProgressRepository
 import com.yeckel.tutor.data.SettingsRepository
 import com.yeckel.tutor.data.VocabRepository
 
@@ -19,8 +20,10 @@ class AppContainer(context: Context) {
     val ollama = OllamaClient(settings)
     val articles = ArticleFetcher()
     val vocab = VocabRepository(context.applicationContext)
+    val progress = ProgressRepository(context.applicationContext)
 
     var currentArticle: Article? = null
+    var pendingContinue: Boolean = false
 }
 
 @Composable

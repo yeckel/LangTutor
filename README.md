@@ -25,6 +25,10 @@ endpoints behind an authenticated proxy).
   bundled per language; the tutor sticks mostly to the list, introduces at most
   1–2 new words per message, glosses them in English (e.g. `el abrigo (coat)`),
   and can be nudged live in the chat with **Too hard / Just right / Too easy**.
+- **Known-words tracking & resumable lessons (Step 2)** — every chat turn is
+  recorded; words the tutor introduces get tracked, words you write yourself
+  count as actively known; the home screen shows *Continue last conversation*
+  so an app restart drops you back into the lesson mid-conversation.
 - **Settings** — Ollama server URL, optional API key, practice language,
   vocabulary level, and model selection (fetched live from the server's model
   list; fetch tests the values currently in the fields, before saving).
@@ -36,6 +40,9 @@ app/src/main/java/com/yeckel/tutor/
 ├── MainActivity.kt, TutorApp.kt, AppContainer.kt   # shell + dependency container
 ├── data/
 │   ├── SettingsRepository.kt                       # DataStore-backed config
+│   ├── ProgressRepository.kt                       # known words + resumable lesson
+│   ├── ProgressModels.kt                           # ProgressWord / LessonProgress
+│   ├── Tokenize.kt / Difficulty.kt / AppDataStore.kt
 │   ├── OllamaClient.kt                             # /api/tags + streamed /api/chat
 │   ├── OllamaModels.kt                             # JSON DTOs + StreamEvent
 │   ├── ArticleFetcher.kt                           # webpage download + Jsoup extraction
@@ -43,7 +50,7 @@ app/src/main/java/com/yeckel/tutor/
 │   └── VocabRepository.kt                          # tiered known-word lists from assets
 └── ui/
     ├── AppNavHost.kt                               # start → chat / settings
-    ├── start/  chat/  settings/                    # Screen + ViewModel pairs
+    ├── start/  chat/  settings/                    # Screen + ViewModel pairs (chat has TutorPrompt.kt)
     └── theme/
 
 app/src/main/assets/vocab/<lang>/<LEVEL>.json       # generated word lists (A0–B1)
@@ -113,15 +120,27 @@ vocabulary. What was built:
 - Long word lists + long articles fit the context: local (non-cloud) models
   are requested with `num_ctx = 8192`.
 
-### Step 2 — Known-words tracking
+### Step 2 — ✅ Known-words tracking + resumable lessons (shipped)
 
-- Local storage (Room) of the learner's known/practiced words, seeded from the
-  level list and **augmented by what actually happened in chats** (words the
-  user used correctly count as known).
-- Words glossed for the user N times get promoted to "known".
-- The system prompt is built from "known set + a small rolling set of
-  currently-being-taught words", so the tutor recycles recently taught words
-  deliberately (spaced repetition lite).
+What was built:
+
+- **Persistent progress store** (`ProgressRepository`, DataStore-backed JSON —
+  deliberately not Room yet: the data is small, and this avoids an annotation
+  processor; migrating to Room is a mechanical follow-up if the lists grow).
+- **Word tracking per language**, on top of the bundled level lists:
+  - every tutor reply is tokenized; words *outside* the active list are
+    recorded with an "introduced by tutor" counter;
+  - every learner reply strengthens words it contains (in the list or already
+    tracked) with a "used by learner" counter — one use marks a word **known**;
+  - Settings shows the live *Tracked words from your chats* count.
+- **Resumable lesson**: article, language, level, difficulty nudge and the
+  whole conversation are stored as the active lesson; the start screen shows a
+  *Continue* card (`N messages · level · language`) and the chat resumes the
+  conversation exactly where it left off — no new greeting.
+- **System prompt refresh per message**: besides the level list it now ships
+  "learner already knows these words" (up to 150) and "currently being taught"
+  (up to 15) so the tutor deliberately reuses recently introduced vocabulary
+  (spaced-repetition lite).
 
 ### Step 3 — Placement & level progression
 
