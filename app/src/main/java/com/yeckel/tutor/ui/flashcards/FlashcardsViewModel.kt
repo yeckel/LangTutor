@@ -204,27 +204,25 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    /** Learner said the word; the spoken check comes from speech recognition. */
+    /** Learner said something; accept the word, its meaning or a learned synonym. */
     fun onSpoken(transcript: String?) {
         val word = current() ?: return
         if (transcript.isNullOrBlank()) {
             _uiState.update { it.copy(spokenMatch = false, spokenText = null) }
             return
         }
-        val matches = SpeechSupport.spokenMatches(word.word, transcript)
+        val matchesWord = SpeechSupport.spokenMatches(word.word, transcript)
+        val matchesMeaning = SpeechSupport.writtenMatchesLocally(
+            transcript,
+            word.translation,
+            word.acceptedMeanings,
+        )
+        val matches = matchesWord || matchesMeaning
         _uiState.update {
             it.copy(spokenText = transcript, spokenMatch = matches)
         }
         if (matches) {
-            viewModelScope.launch { container.progress.recordTrainCorrect(languageKey, word.word) }
-            _uiState.update {
-                it.copy(
-                    outcome = "✓ Well said — “${it.spokenText}”",
-                    outcomeCorrect = true,
-                    correct = it.correct + 1,
-                    revealed = true,
-                )
-            }
+            acceptMeaning(word, transcript, note = null)
         }
     }
 
@@ -234,16 +232,21 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     fun onSpeechUnavailable() =
         _uiState.update { it.copy(error = "Speech recognition is not available on this device.") }
 
-    /** Learner gives up on this card: counts as missed, shows the meaning. */
-    fun reveal() {
+    /**
+     * Learner gives up on this card: counts as missed, shows the meaning.
+     * When the tutor model could not be consulted, the card stays open and
+     * the answer is NOT penalized (server hiccups are not lack of knowledge).
+     */
+    fun giveUp() {
+        val state = _uiState.value
         val word = current() ?: return
-        if (!_uiState.value.revealed) {
+        if (!state.revealed) {
             viewModelScope.launch { container.progress.recordTrainMissed(languageKey, word.word) }
         }
         _uiState.update {
             it.copy(
                 revealed = true,
-                missed = it.missed + 1,
+                missed = if (state.revealed) it.missed else it.missed + 1,
                 outcome = "Meaning: ${word.translation?.removePrefix("to ") ?: "?"}",
                 outcomeCorrect = false,
             )

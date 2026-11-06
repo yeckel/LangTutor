@@ -227,9 +227,16 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 }
                             }
 
-                            Button(onClick = { onSayIt() }) {
-                                Spacer(Modifier.width(6.dp))
-                                Text("Say it")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            ) {
+                                Button(onClick = { onSayIt() }) {
+                                    Text("Say it")
+                                }
+                                TextButton(onClick = viewModel::giveUp) {
+                                    Text("I don't know")
+                                }
                             }
 
                             state.spokenText?.let { spoken ->
@@ -260,10 +267,6 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(if (state.index + 1 >= state.words.size) "Finish" else "Next")
-                            }
-                        } else {
-                            TextButton(onClick = viewModel::reveal) {
-                                Text("Reveal")
                             }
                         }
                     }
