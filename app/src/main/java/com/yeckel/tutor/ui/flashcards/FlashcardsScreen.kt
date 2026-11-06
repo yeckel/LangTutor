@@ -66,37 +66,39 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     var pendingSpeak by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
+    var failedAttempts by remember { mutableStateOf(0) }
+    var listeningStoppedForCard by remember { mutableStateOf(false) }
+    var startListenFn by remember { mutableStateOf<(String) -> Unit>({}) }
 
     val mainHandler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
-
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val texts = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-        viewModel.onSpoken(texts?.firstOrNull())
-    }
 
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         if (grants[Manifest.permission.RECORD_AUDIO] == true && pendingSpeak) {
             pendingSpeak = false
-            startSpeech(context, state.languageName, speechLauncher)
+            startListenFn?.invoke(
+                SpeechSupport.localeFor(state.languageKey)?.toLanguageTag() ?: "en-US",
+            )
         }
     }
 
-    // TTS warmup so auto-speech is ready by the first card.
-    LaunchedEffect(Unit) { container.tts.warmup() }
-    DisposableEffect(Unit) { onDispose { container.tts.stop() } }
+    var silentRounds by remember { mutableStateOf(0) }
 
-    // In-app recognizer (no dialog); fall back to the intent dialog otherwise.
+    // In-app recognizer (no dialog) when the device has a speech service.
     val recognizer = if (android.speech.SpeechRecognizer.isRecognitionAvailable(context)) {
         remember { android.speech.SpeechRecognizer.createSpeechRecognizer(context) }
     } else {
         remember { null }
     }
 
-    var silentRounds by remember { mutableStateOf(0) }
+    // New card: fresh retry budget.
+    LaunchedEffect(state.index, state.phase) {
+        failedAttempts = 0
+        listeningStoppedForCard = false
+        silentRounds = 0
+    }
+
     fun startListen(tag: String) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -108,11 +110,35 @@ fun FlashcardsScreen(onBack: () -> Unit) {
         if (rec != null) {
             rec.startListening(intent)
         } else {
-            runCatching { speechLauncher.launch(intent) }.onFailure { viewModel.onSpeechUnavailable() }
+            viewModel.onSpeechUnavailable()
         }
     }
 
+    /** Re-opens the mic after a failed attempt, up to MAX_RETRIES per card. */
+    fun retryListen(tag: String, idle: Boolean) {
+        failedAttempts += 1
+        val canRetry = failedAttempts <= MAX_RETRIES &&
+            viewModel.uiState.value.autoListen &&
+            !viewModel.uiState.value.paused &&
+            !viewModel.uiState.value.revealed
+        if (canRetry) {
+            mainHandler.postDelayed({
+                val st = viewModel.uiState.value
+                if (!st.revealed && !st.paused && st.autoListen) {
+                    SpeechSupport.localeFor(st.languageKey)?.toLanguageTag()?.let { startListen(it) }
+                }
+            }, if (idle) 900L else 1200L)
+        } else {
+            listeningStoppedForCard = true
+        }
+    }
+
+    // TTS warmup so auto-speech is ready by the first card.
+    LaunchedEffect(Unit) { container.tts.warmup() }
+    DisposableEffect(Unit) { onDispose { container.tts.stop() } }
+
     DisposableEffect(Unit) {
+        startListenFn = { tag -> startListen(tag) }
         recognizer?.setRecognitionListener(object : android.speech.RecognitionListener {
             override fun onReadyForSpeech(params: android.os.Bundle?) {
                 silentRounds = 0
@@ -131,27 +157,24 @@ fun FlashcardsScreen(onBack: () -> Unit) {
 
             override fun onError(error: Int) {
                 if (error == android.speech.SpeechRecognizer.ERROR_RECOGNIZER_BUSY) return
-                // Silence/no-speech during auto-listen: retry once, then wait for manual input.
+                listening = false
+                // Silence/no-speech: retry within the card's retry budget.
                 if (error == android.speech.SpeechRecognizer.ERROR_NO_MATCH ||
                     error == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
                 ) {
-                    listening = false
-                    if (silentRounds < 1 && viewModel.uiState.value.autoListen && !viewModel.uiState.value.revealed) {
-                        silentRounds += 1
-                        mainHandler.postDelayed({
-                            val st = viewModel.uiState.value
-                            if (!st.revealed && st.autoListen) {
-                                SpeechSupport.localeFor(st.languageKey)?.toLanguageTag()?.let { startListen(it) }
-                            }
-                        }, 700)
-                    }
+                    retryListen(SpeechSupport.localeFor(viewModel.uiState.value.languageKey)?.toLanguageTag() ?: "en", idle = true)
                 }
             }
 
             override fun onResults(results: android.os.Bundle?) {
                 listening = false
                 val best = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                val acceptedBefore = viewModel.uiState.value.revealed
                 viewModel.onSpoken(best)
+                // Non-matching spoken answer: re-open the mic after feedback.
+                if (!acceptedBefore && !viewModel.uiState.value.revealed) {
+                    retryListen(SpeechSupport.localeFor(viewModel.uiState.value.languageKey)?.toLanguageTag() ?: "en", idle = false)
+                }
             }
 
             override fun onPartialResults(partialResults: android.os.Bundle?) {}
@@ -223,7 +246,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (granted) {
-            startSpeech(context, state.languageName, speechLauncher)
+            SpeechSupport.localeFor(state.languageKey)?.toLanguageTag()?.let { startListen(it) }
         } else {
             pendingSpeak = true
             micPermissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
@@ -439,6 +462,14 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                     textAlign = TextAlign.Center,
                                 )
                             }
+                            if (listeningStoppedForCard) {
+                                Text(
+                                    "Listening paused for this card — “Say it” to try again.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
 
                         state.error?.let {
@@ -465,20 +496,5 @@ fun FlashcardsScreen(onBack: () -> Unit) {
     }
 }
 
-/** Launches the system speech recognizer in the practice language. */
-private fun startSpeech(
-    context: Context,
-    languageName: String,
-    launcher: androidx.activity.result.ActivityResultLauncher<Intent>,
-) {
-    val languageKey = VocabRepository.languageCode(languageName) ?: ""
-    val locale = SpeechSupport.localeFor(languageKey)?.toString() ?: "en-US"
-
-    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
-        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say the word")
-    }
-    runCatching { launcher.launch(intent) }
-}
+/** Spoken retries allowed per card before listening stands down. */
+private const val MAX_RETRIES = 3
