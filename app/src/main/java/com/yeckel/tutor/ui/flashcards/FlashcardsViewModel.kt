@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
 import com.yeckel.tutor.data.ChatMessage
+import com.yeckel.tutor.data.MeaningCheck
 import com.yeckel.tutor.data.ProgressWord
 import com.yeckel.tutor.data.SpeechSupport
 import com.yeckel.tutor.data.Translations
@@ -28,6 +29,7 @@ data class FlashcardUiState(
     val spokenMatch: Boolean? = null,
     val outcome: String? = null,
     val outcomeCorrect: Boolean? = null,
+    val checking: Boolean = false,
     val correct: Int = 0,
     val missed: Int = 0,
     val languageName: String = "",
@@ -114,12 +116,12 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
     private fun current() = _uiState.value.words.getOrNull(_uiState.value.index)
 
-    /** Learner typed the meaning; check it against the stored translation. */
+    /** Learner typed the meaning; local fuzzy check first, then model judgement. */
     fun checkMeaning() {
         val state = _uiState.value
         val word = current() ?: return
         val answer = state.input.trim()
-        if (answer.isEmpty()) return
+        if (answer.isEmpty() || state.checking) return
         val translation = word.translation
 
         if (translation.isNullOrBlank()) {
@@ -129,28 +131,76 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             return
         }
 
-        if (SpeechSupport.writtenMatches(answer, translation)) {
-            viewModelScope.launch { container.progress.recordTrainCorrect(languageKey, word.word) }
-            _uiState.update {
-                it.copy(
-                    outcome = "✓ Correct — ${word.word} = ${translation.removePrefix("to ")}",
-                    outcomeCorrect = true,
-                    correct = it.correct + 1,
-                    revealed = true,
-                    error = null,
-                )
+        if (SpeechSupport.writtenMatchesLocally(answer, translation, word.acceptedMeanings)) {
+            acceptMeaning(word, answer, note = null)
+            return
+        }
+
+        // Local check failed: ask the tutor model if the meaning is acceptable
+        // (synonyms like huge/big or phrasing like "I have" for "have").
+        _uiState.update { it.copy(checking = true) }
+        viewModelScope.launch {
+            val config = container.settings.current()
+            container.ollama.chatOnce(
+                config.model,
+                meaningCheckMessages(config.language, word.word, translation, answer),
+                expectJson = true,
+            ).fold(
+                onSuccess = { text ->
+                    val check = runCatching {
+                        json.decodeFromString<MeaningCheck>(extractJsonPayload(text))
+                    }.getOrNull()
+                    when {
+                        check == null ->
+                            missMeaning(word, "expected: ${translation.removePrefix("to ")}")
+
+                        check.correct -> acceptMeaning(word, answer, note = check.explanation.ifBlank {
+                            translation.removePrefix("to ")
+                        })
+
+                        else -> missMeaning(word, check.explanation.ifBlank {
+                            "expected: ${translation.removePrefix("to ")}"
+                        })
+                    }
+                },
+                onFailure = { e ->
+                    missMeaning(word, "expected: ${translation.removePrefix("to ")} " +
+                        "(the tutor could not be consulted: ${e.message})")
+                },
+            )
+            _uiState.update { it.copy(checking = false) }
+        }
+    }
+
+    private fun acceptMeaning(word: ProgressWord, typedAnswer: String, note: String?) {
+        viewModelScope.launch {
+            container.progress.recordTrainCorrect(languageKey, word.word)
+            val stored = word.translation
+            if (stored.isNullOrBlank() || !typedAnswer.equals(stored.trim(), ignoreCase = true)) {
+                container.progress.addAcceptedMeaning(languageKey, word.word, typedAnswer)
             }
-        } else {
-            viewModelScope.launch { container.progress.recordTrainMissed(languageKey, word.word) }
-            _uiState.update {
-                it.copy(
-                    outcome = "✗ Close, but expected: ${translation.removePrefix("to ")}",
-                    outcomeCorrect = false,
-                    missed = it.missed + 1,
-                    revealed = true,
-                    error = null,
-                )
-            }
+        }
+        _uiState.update {
+            it.copy(
+                outcome = "✓ Accepted — ${word.word} = ${typedAnswer}" +
+                    (note?.takeIf { n -> n.isNotBlank() }?.let { n -> " ($n)" } ?: ""),
+                outcomeCorrect = true,
+                correct = it.correct + 1,
+                revealed = true,
+                error = null,
+            )
+        }
+    }
+
+    private fun missMeaning(word: ProgressWord, note: String) {
+        viewModelScope.launch { container.progress.recordTrainMissed(languageKey, word.word) }
+        _uiState.update {
+            it.copy(
+                outcome = "✗ Not accepted — ${word.word}: $note",
+                outcomeCorrect = false,
+                missed = it.missed + 1,
+                revealed = true,
+            )
         }
     }
 
@@ -228,9 +278,22 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
                 "Keep meanings short (1-2 words). Translate even inflected word forms " +
                 "to their plain English meaning.",
         ),
-        ChatMessage(
-            role = "user",
-            content = "Translate these words: ${Json.encodeToString(words)}",
-        ),
+        ChatMessage(role = "user", content = "Translate these words: ${Json.encodeToString(words)}"),
     )
+
+    private fun meaningCheckMessages(language: String, word: String, expected: String, answer: String) =
+        listOf(
+            ChatMessage(
+                role = "system",
+                content = "You are a lenient vocabulary tutor for $language. The learner is " +
+                    "training flash cards. Target word: \"$word\" in $language. The stored meaning " +
+                    "was \"$expected\". The learner answered: \"$answer\". " +
+                    "Accept the answer if it is a correct, reasonable English meaning of the word - " +
+                    "synonyms are fine (big/huge/large), and inflected or pronoun-prefixed phrasing " +
+                    "like \"I have\" for \"tengo\" is fine. Reject only clearly wrong meanings. " +
+                    "Reply ONLY with JSON: {\"correct\": true, \"explanation\": \"1 very short " +
+                    "sentence in English about the answer\"}.",
+            ),
+            ChatMessage(role = "user", content = "Judge the answer now."),
+        )
 }

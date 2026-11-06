@@ -169,6 +169,22 @@ class ProgressRepository(private val context: Context) {
         }
     }
 
+    /** Remembers a synonym/alternative the tutor accepted, for future cards. */
+    suspend fun addAcceptedMeaning(languageKey: String, word: String, meaning: String) {
+        val meaning = meaning.trim().lowercase()
+        if (meaning.isEmpty()) return
+        writeMutex.withLock {
+            updateWordLocked(languageKey, word.trim().lowercase()) { it }?.let { updated ->
+                val known = updated.acceptedMeanings.any { it.equals(meaning, ignoreCase = true) }
+                if (known) {
+                    replaceWordLocked(updated)
+                } else {
+                    replaceWordLocked(updated.copy(acceptedMeanings = (updated.acceptedMeanings + meaning).takeLast(6)))
+                }
+            }
+        }
+    }
+
     /** Update-or-create hook used inside the write mutex. */
     private suspend fun updateWordLocked(
         languageKey: String,

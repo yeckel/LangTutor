@@ -17,6 +17,8 @@ data class ProgressWord(
     val usedByLearner: Int = 0,
     /** Help-language meaning, cached from the model for flash cards. */
     val translation: String? = null,
+    /** Alternative meanings the learner already got away with (synonyms). */
+    val acceptedMeanings: List<String> = emptyList(),
     /** Flash-card training results. */
     val trainCorrect: Int = 0,
     val trainMissed: Int = 0,
@@ -26,6 +28,13 @@ data class ProgressWord(
 /** True when the learner has demonstrably used/knows the word. */
 val ProgressWord.isKnown: Boolean
     get() = usedByLearner >= 1
+
+/** Model verdict for a flash-card meaning check. */
+@Serializable
+data class MeaningCheck(
+    val correct: Boolean = false,
+    val explanation: String = "",
+)
 
 /** One saved chat turn of the active lesson. */
 @Serializable
