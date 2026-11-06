@@ -267,6 +267,23 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     fun onMicPermissionDenied() =
         _uiState.update { it.copy(error = "Microphone access is needed for spoken practice.") }
 
+    /** Card-side speak toggles; they persist to the same settings. */
+    fun toggleSpeakSource(checked: Boolean) {
+        _uiState.update { it.copy(speakSource = checked) }
+        viewModelScope.launch {
+            val config = container.settings.current()
+            container.settings.save(config.copy(speakSource = checked))
+        }
+    }
+
+    fun toggleSpeakMeanings(checked: Boolean) {
+        _uiState.update { it.copy(speakMeanings = checked) }
+        viewModelScope.launch {
+            val config = container.settings.current()
+            container.settings.save(config.copy(speakMeanings = checked))
+        }
+    }
+
     fun onSpeechUnavailable() =
         _uiState.update { it.copy(error = "Speech recognition is not available on this device.") }
 

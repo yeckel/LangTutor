@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -195,6 +196,26 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     word?.let { current ->
+                        if (!state.revealed) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                            ) {
+                                FilterChip(
+                                    selected = state.speakSource,
+                                    onClick = { viewModel.toggleSpeakSource(!state.speakSource) },
+                                    label = { Text("🔊 word") },
+                                )
+                                FilterChip(
+                                    selected = state.speakMeanings,
+                                    onClick = { viewModel.toggleSpeakMeanings(!state.speakMeanings) },
+                                    label = { Text("🔊 meaning") },
+                                )
+                            }
+                        } else {
+                            Spacer(Modifier.height(34.dp))
+                        }
+
                         Text(
                             current.word,
                             style = MaterialTheme.typography.displayMedium,
