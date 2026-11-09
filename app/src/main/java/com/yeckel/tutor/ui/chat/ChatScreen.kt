@@ -129,7 +129,9 @@ fun ChatScreen(onBack: () -> Unit) {
     fun rescheduleVoiceListen(delayMs: Long) {
         mainHandler.postDelayed({
             val st = viewModel.uiState.value
-            if (st.voice && !st.busy && st.error == null) startVoiceListen()
+            if (st.voice && !st.busy && !st.speakingReply && st.error == null) {
+                startVoiceListen()
+            }
         }, delayMs)
     }
 
@@ -187,18 +189,24 @@ fun ChatScreen(onBack: () -> Unit) {
         }
     }
 
-    // Mic must be closed while the model answers and while the reply is spoken,
-    // otherwise the recognizer hears the TTS itself.
+    // Mic must never be open while the model answers or while the reply is
+    // spoken: otherwise the recognizer hears the TTS itself (echo loop).
     LaunchedEffect(state.busy) {
         if (state.busy && state.voice) stopVoiceListen()
+    }
+    LaunchedEffect(state.speakingReply) {
+        if (state.speakingReply && state.voice) stopVoiceListen()
     }
 
     // Reopen the mic when voice mode starts and after each spoken reply.
     LaunchedEffect(state.voice, state.voiceTurn, state.busy, state.error) {
         if (!state.voice || state.busy || state.error != null) return@LaunchedEffect
         if (listeningLocally) return@LaunchedEffect
-        kotlinx.coroutines.delay(400)
-        if (viewModel.uiState.value.voice && !viewModel.uiState.value.busy) {
+        // Settle time: make sure the tail of the spoken reply is out of the
+        // speaker before the mic opens (echo protection).
+        kotlinx.coroutines.delay(600)
+        val st = viewModel.uiState.value
+        if (st.voice && !st.busy && !st.speakingReply && st.error == null && !listeningLocally) {
             startVoiceListen()
         }
     }
@@ -324,6 +332,7 @@ fun ChatScreen(onBack: () -> Unit) {
                 ) {
                     val label = when {
                         state.voiceListening -> stringResource(R.string.cards_listening)
+                        state.speakingReply -> stringResource(R.string.chat_voice_speaking)
                         state.busy -> stringResource(R.string.chat_voice_thinking)
                         else -> stringResource(R.string.chat_voice_speaking)
                     }

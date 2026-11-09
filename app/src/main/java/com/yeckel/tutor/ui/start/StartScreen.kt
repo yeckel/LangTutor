@@ -90,7 +90,7 @@ fun StartScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Continue")
+                            Text(stringResource(R.string.common_continue))
                         }
                     }
                 }

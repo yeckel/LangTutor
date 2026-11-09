@@ -39,6 +39,8 @@ data class ChatUiState(
     // Voice conversation mode (talk <-> listen <-> reply loop).
     val voice: Boolean = false,
     val voiceListening: Boolean = false,
+    /** True while the reply's read-aloud is still playing (mic must stay closed). */
+    val speakingReply: Boolean = false,
     /** Bumped when the reply was fully spoken so the mic can reopen. */
     val voiceTurn: Long = 0,
 )
@@ -68,8 +70,15 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     private var speakBuffer: StringBuilder = StringBuilder()
     private var firstUtteranceOfReply = false
     private var history: MutableList<ChatMessage> = mutableListOf()
-    /** Number of read-aloud utterances queued for the current reply (last one reopens the mic). */
-    private var speechUtteranceCount = 0
+    /**
+     * TTS-side bookkeeping for the voice loop: every queued read-aloud
+     * utterance increments [spokenPending] and decrements it in its done
+     * callback. The mic may only re-open when [spokenPending] reaches zero
+     * AFTER the reply finished streaming — otherwise the mic would open while
+     * the app is still speaking and hear itself (endless echo loop).
+     */
+    private var spokenPending = 0
+    private var reopenAfterSpeech = false
 
     /**
      * Called when the chat screen opens with a freshly loaded article:
@@ -143,9 +152,18 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
      * the screen; here we keep the state and the auto-send.
      */
     fun toggleVoice(on: Boolean) {
-        _uiState.update { it.copy(voice = on, voiceListening = false) }
+        _uiState.update {
+            it.copy(
+                voice = on,
+                voiceListening = false,
+                speakingReply = if (on) it.speakingReply else false,
+            )
+        }
         if (!on) {
+            spokenPending = 0
+            reopenAfterSpeech = false
             container.tts.stop() // also cancels the pending reopen callback
+            markSpeaking(false)
         }
         viewModelScope.launch {
             val config = container.settings.current()
@@ -182,8 +200,10 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
         // Stop any ongoing reading so the new exchange starts in silence.
         container.tts.stop()
+        markSpeaking(false)
         speakBuffer = StringBuilder()
-        speechUtteranceCount = 0
+        spokenPending = 0
+        reopenAfterSpeech = false
 
         history.add(ChatMessage(role = "user", content = text))
         _uiState.update {
@@ -276,7 +296,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
         val buffer = StringBuilder()
         speakBuffer = StringBuilder()
-        speechUtteranceCount = 0
+        spokenPending = 0
+        reopenAfterSpeech = false
         firstUtteranceOfReply = _uiState.value.readAloud
         try {
             container.ollama.chatStream(config.model, messagesForModel).collect { event ->
@@ -306,12 +327,16 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                 container.progress.recordAssistantMessage(languageKey, vocabWords.toSet(), reply)
             }
             _uiState.update { it.copy(busy = false) }
-            // Voice mode with no spoken utterance (read-aloud off or nothing
-            // queued): reopen the mic right away. Otherwise the last
-            // utterance's done callback performs the reopen once the reply is
-            // fully spoken.
-            if (_uiState.value.voice && speechUtteranceCount == 0) {
-                _uiState.update { it.copy(voiceTurn = it.voiceTurn + 1) }
+            // Voice mode: the mic re-opens when nothing is left to be spoken.
+            // If read-aloud utterances are still queued, defer the reopen to
+            // the moment the TTS queue drains (utterance done-callbacks).
+            if (_uiState.value.voice) {
+                if (!_uiState.value.readAloud || spokenPending == 0) {
+                    markSpeaking(false)
+                    _uiState.update { it.copy(voiceTurn = it.voiceTurn + 1) }
+                } else {
+                    reopenAfterSpeech = true
+                }
             }
         }
     }
@@ -338,6 +363,33 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     private fun languageKeyFor(language: String): String =
         VocabRepository.languageCode(language) ?: language.lowercase()
 
+    /** Queues one read-aloud utterance; decrements the pending counter on done. */
+    private fun queueReadAloud(utterance: String, tag: String, flush: Boolean) {
+        spokenPending += 1
+        markSpeaking(true)
+        container.tts.speak(utterance, tag, flush = flush) {
+            spokenPending = (spokenPending - 1).coerceAtLeast(0)
+            // The reopen fires exactly when the TTS queue drains and the
+            // reply already finished streaming.
+            if (spokenPending == 0) {
+                markSpeaking(false)
+                if (reopenAfterSpeech) {
+                    reopenAfterSpeech = false
+                    if (_uiState.value.voice) {
+                        _uiState.update { it.copy(voiceTurn = it.voiceTurn + 1) }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Mic must stay closed while the app speaks. */
+    private fun markSpeaking(playing: Boolean) {
+        if (_uiState.value.speakingReply != playing) {
+            _uiState.update { it.copy(speakingReply = playing) }
+        }
+    }
+
     /** Progressive read-aloud: queue one utterance per finished sentence. */
     private fun speakProgressive(deltaText: String) {
         if (!_uiState.value.readAloud) return
@@ -351,15 +403,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             speakBuffer = StringBuilder(text.substring(cut))
             if (utterance.isNotBlank()) {
                 val tag = SpeechSupport.localeFor(languageKey)?.toLanguageTag() ?: return
-                // In voice mode each new utterance takes over the "reopen the
-                // mic" duty; only the queued-last callback actually fires it.
-                speechUtteranceCount += 1
-                val myIndex = speechUtteranceCount
-                container.tts.speak(utterance, tag, flush = firstUtteranceOfReply) {
-                    if (myIndex == speechUtteranceCount && _uiState.value.voice) {
-                        _uiState.update { it.copy(voiceTurn = it.voiceTurn + 1) }
-                    }
-                }
+                queueReadAloud(utterance, tag, flush = firstUtteranceOfReply)
                 firstUtteranceOfReply = false
             }
         }
@@ -372,13 +416,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         speakBuffer = StringBuilder()
         if (rest.isNotBlank()) {
             val tag = SpeechSupport.localeFor(languageKey)?.toLanguageTag() ?: return
-            speechUtteranceCount += 1
-            val myIndex = speechUtteranceCount
-            container.tts.speak(rest, tag, flush = false) {
-                if (myIndex == speechUtteranceCount && _uiState.value.voice) {
-                    _uiState.update { it.copy(voiceTurn = it.voiceTurn + 1) }
-                }
-            }
+            queueReadAloud(rest, tag, flush = false)
         }
         firstUtteranceOfReply = false
     }
