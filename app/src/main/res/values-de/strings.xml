@@ -59,6 +59,12 @@
     <string name="cards_heard">Gehört: „%1$s“</string>
     <string name="cards_heard_notquite"> — nicht ganz, versuch es nochmal</string>
     <string name="cards_no_words">Noch keine Wörter. Chatte mit dem Tutor, mach den Einstufungstest oder füge Wörter hinzu.</string>
+    <string name="cards_level_all">Alle</string>
+    <string name="gloss_add">Zu meinen Wörtern hinzufügen</string>
+    <string name="gloss_added">Hinzugefügt ✓</string>
+    <string name="chat_voice_paused">Pausiert</string>
+    <string name="chat_voice_pause">Pause</string>
+    <string name="chat_voice_resume">Fortsetzen</string>
     <string name="cards_error_mic">Mikrofonzugriff wird für die Sprechübung benötigt.</string>
     <string name="cards_error_speech">Spracherkennung ist auf diesem Gerät nicht verfügbar.</string>
     <string name="cards_error_fetch">Bedeutungen konnten nicht geladen werden (%1$s); Karten zeigen nur die Antwort.</string>

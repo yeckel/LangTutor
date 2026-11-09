@@ -39,6 +39,8 @@ data class ChatUiState(
     // Voice conversation mode (talk <-> listen <-> reply loop).
     val voice: Boolean = false,
     val voiceListening: Boolean = false,
+    /** Paused: the mic loop stops until resumed (the loop itself stays on). */
+    val voicePaused: Boolean = false,
     /** True while the reply's read-aloud is still playing (mic must stay closed). */
     val speakingReply: Boolean = false,
     /** Bumped when the reply was fully spoken so the mic can reopen. */
@@ -188,6 +190,47 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         if (clean.isEmpty() || _uiState.value.busy) return
         _uiState.update { it.copy(input = "") }
         sendInternal(clean)
+    }
+
+    /** Pauses/resumes the spoken-conversation loop (mic level, not the mode). */
+    fun setVoicePaused(paused: Boolean) {
+        _uiState.update { it.copy(voicePaused = paused, voiceListening = false) }
+    }
+
+    /**
+     * Adds a word that the learner tapped as a gloss → personal word list
+     * (status: learning).
+     */
+    fun addGlossWord(word: String) {
+        val clean = word.trim()
+        if (clean.isEmpty()) return
+        viewModelScope.launch {
+            container.progress.addWord(languageKey, clean, known = false)
+        }
+    }
+
+    /**
+     * Regenerates the tutor's last reply: drops trailing (possibly partial)
+     * assistant bubbles from the in-memory history and asks the model again.
+     */
+    fun retry() {
+        if (_uiState.value.busy) return
+        container.tts.stop()
+        markSpeaking(false)
+        spokenPending = 0
+        reopenAfterSpeech = false
+
+        while (history.isNotEmpty() && history.last().role == "assistant") {
+            history.removeAt(history.lastIndex)
+        }
+        _uiState.update { st ->
+            var msgs = st.messages
+            while (msgs.isNotEmpty() && msgs.last().role == "assistant") {
+                msgs = msgs.dropLast(1)
+            }
+            st.copy(messages = msgs, error = null, busy = true)
+        }
+        viewModelScope.launch { generate() }
     }
 
     fun send() {

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome layer for Android 13+ themed (material you) launcher icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M50,44 h30 a7,7 0 0 1 7,7 v13 a7,7 0 0 1 -7,7 h-13 l-8,7 v-7 h-9 a7,7 0 0 1 -7,-7 v-13 a7,7 0 0 1 7,-7 z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M29,27 h27 a7,7 0 0 1 7,7 v13 a7,7 0 0 1 -7,7 h-4 l-8,7 v-7 h-15 a7,7 0 0 1 -7,-7 v-13 a7,7 0 0 1 7,-7 z" />
+
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M39,43 m-3,0 a3,3 0 1 1 6,0 a3,3 0 1 1 -6,0" />
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M50,43 m-3,0 a3,3 0 1 1 6,0 a3,3 0 1 1 -6,0" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M79,30 l2.2,5 5,2.2 -5,2.2 -2.2,5 -2.2,-5 -5,-2.2 5,-2.2 z" />
+</vector>

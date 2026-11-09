@@ -58,7 +58,12 @@ fun WordsScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Words · ${state.languageName.ifBlank { "-" }}") },
+                title = {
+                    Text(
+                        stringResource(R.string.words_title) + " · " +
+                            state.languageName.ifBlank { "-" },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -110,7 +115,7 @@ fun WordsScreen(
                 Text(stringResource(R.string.words_train))
             }
             Text(
-                "Tracked from conversations. Tap a word to toggle known/learning.",
+                stringResource(R.string.words_tracked_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

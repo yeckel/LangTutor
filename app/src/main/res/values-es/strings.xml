@@ -59,6 +59,12 @@
     <string name="cards_heard">Escuchado: “%1$s”</string>
     <string name="cards_heard_notquite"> — no es exacto, inténtalo otra vez</string>
     <string name="cards_no_words">Aún no hay palabras. Habla con el tutor, haz el test de nivel o añade palabras.</string>
+    <string name="cards_level_all">Todo</string>
+    <string name="gloss_add">Añadir a mis palabras</string>
+    <string name="gloss_added">Añadida ✓</string>
+    <string name="chat_voice_paused">En pausa</string>
+    <string name="chat_voice_pause">Pausar</string>
+    <string name="chat_voice_resume">Reanudar</string>
     <string name="cards_error_mic">Se necesita acceso al micrófono para la práctica hablada.</string>
     <string name="cards_error_speech">El reconocimiento de voz no está disponible en este dispositivo.</string>
     <string name="cards_error_fetch">No se pudieron buscar los significados (%1$s); las tarjetas solo funcionan con revelación.</string>

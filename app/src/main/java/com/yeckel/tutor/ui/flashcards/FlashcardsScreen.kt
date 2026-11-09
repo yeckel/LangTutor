@@ -275,7 +275,10 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                 },
                 actions = {
                     TextButton(onClick = viewModel::togglePause, enabled = state.phase == FlashcardPhase.STUDY) {
-                        Text(if (state.paused) "▶ Resume" else "⏸ Pause")
+                        Text(
+                            if (state.paused) stringResource(R.string.chat_voice_resume)
+                            else stringResource(R.string.chat_voice_pause),
+                        )
                     }
                 },
             )
@@ -335,6 +338,29 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    // Deck filter: all levels or the current vocabulary tier.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    ) {
+                        FilterChip(
+                            selected = !state.levelOnly,
+                            onClick = { viewModel.setLevelOnly(false) },
+                            label = { Text(stringResource(R.string.cards_level_all)) },
+                        )
+                        FilterChip(
+                            selected = state.levelOnly,
+                            onClick = { viewModel.setLevelOnly(true) },
+                            label = {
+                                Text(
+                                    state.vocabLevel.ifBlank {
+                                        stringResource(R.string.cards_level_all)
+                                    },
+                                )
+                            },
+                        )
+                    }
+
                     word?.let { current ->
                         if (listening && !state.paused) {
                             Row(
@@ -488,9 +514,23 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 onClick = viewModel::next,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(if (state.index + 1 >= state.words.size) "Finish" else "Next")
+                                Text(
+                                    if (state.index + 1 >= state.words.size) {
+                                        stringResource(R.string.common_finish)
+                                    } else {
+                                        stringResource(R.string.common_next)
+                                    },
+                                )
                             }
                         }
+                    }
+
+                    if (word == null) {
+                        Text(
+                            state.error ?: stringResource(R.string.cards_no_words),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

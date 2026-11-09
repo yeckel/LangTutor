@@ -42,8 +42,9 @@ endpoints behind an authenticated proxy).
   input), your speech is sent automatically, the reply streams + is read aloud
   progressively, and the mic re-opens shortly after the reply finishes. The mic
   never opens while the app is still speaking (echo protection), and the loop
-  pauses on errors. Enabling voice mode also switches read-aloud on and
-  persists it; disable the mic to go back to typing only (mixing both is fine).
+  pauses on errors. ⏸/▶ pauses or resumes the mic loop without leaving voice
+  mode. Enabling voice mode also switches read-aloud on and persists it;
+  disable the mic to go back to typing only (mixing both is fine).
 - **Speak-everything switches** — Settings: *Speak words automatically* (each
   card is read in the practice language) and *Speak meanings automatically*
   (meanings are read in your help language when revealed). Both persist;
@@ -223,13 +224,18 @@ What was built:
 
 ### Step 5 — Chat UX refinements
 
-- Flash-card deck filtered to the current tier (deck covers all levels now).
+- ✅ **Flash-card deck filter** — on the cards screen chips pick *All* or the
+  current vocabulary tier; the deck rebuilds (counters restart).
+- ✅ **Explanation card** — in chat, a glossed pattern like `el abrigo (coat)`
+  is underlined; tapping it opens a mini card with the meaning and an
+  *Add to my words* button (status: learning).
+- ✅ **Retry/regenerate** — shown next to errors; re-asks the tutor after
+  dropping the failed (possibly partial) attempt.
+- ✅ **Pause for the spoken loop** — ⏸/▶ next to the 🎙 pauses the mic loop
+  without leaving voice mode.
 - Corrections as distinct rendering (wrong → right → reason), not inline text. *(partially shipped: flash cards render per-word state)*
-- Tappable glosses: tap a glossed word → add to a personal word list / show a
-  mini explanation card.
 - Conversation archive (the *last* lesson already resumes; a full history view
   is future work).
-- Retry/regenerate button when generation fails or quality disappoints.
 - Optional pronunciation-feedback pass (Step 4 leftover).
 
 ### Step 6 — Robustness & quality

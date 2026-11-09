@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +36,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -52,8 +54,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -129,7 +134,9 @@ fun ChatScreen(onBack: () -> Unit) {
     fun rescheduleVoiceListen(delayMs: Long) {
         mainHandler.postDelayed({
             val st = viewModel.uiState.value
-            if (st.voice && !st.busy && !st.speakingReply && st.error == null) {
+            if (st.voice && !st.busy && !st.speakingReply && st.error == null &&
+                !st.voicePaused && !st.voiceListening
+            ) {
                 startVoiceListen()
             }
         }, delayMs)
@@ -191,22 +198,28 @@ fun ChatScreen(onBack: () -> Unit) {
 
     // Mic must never be open while the model answers or while the reply is
     // spoken: otherwise the recognizer hears the TTS itself (echo loop).
+    // Paused: stop everything until resume.
     LaunchedEffect(state.busy) {
         if (state.busy && state.voice) stopVoiceListen()
     }
     LaunchedEffect(state.speakingReply) {
         if (state.speakingReply && state.voice) stopVoiceListen()
     }
+    LaunchedEffect(state.voicePaused) {
+        if (state.voicePaused) stopVoiceListen()
+    }
 
     // Reopen the mic when voice mode starts and after each spoken reply.
     LaunchedEffect(state.voice, state.voiceTurn, state.busy, state.error) {
         if (!state.voice || state.busy || state.error != null) return@LaunchedEffect
-        if (listeningLocally) return@LaunchedEffect
+        if (state.voicePaused || listeningLocally) return@LaunchedEffect
         // Settle time: make sure the tail of the spoken reply is out of the
         // speaker before the mic opens (echo protection).
         kotlinx.coroutines.delay(600)
         val st = viewModel.uiState.value
-        if (st.voice && !st.busy && !st.speakingReply && st.error == null && !listeningLocally) {
+        if (st.voice && !st.busy && !st.speakingReply && !st.voicePaused &&
+            st.error == null && !listeningLocally
+        ) {
             startVoiceListen()
         }
     }
@@ -216,6 +229,41 @@ fun ChatScreen(onBack: () -> Unit) {
     LaunchedEffect(key1 = state.messages.size, key2 = lastContentLength) {
         if (state.messages.isNotEmpty()) {
             listState.scrollToItem(state.messages.lastIndex)
+        }
+    }
+
+    // Explanation card for a tapped gloss ("el abrigo (coat)" spans).
+    var glossSheet by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var glossAdded by remember { mutableStateOf(false) }
+    glossSheet?.let { (word, glossMeaning) ->
+        ModalBottomSheet(onDismissRequest = { glossSheet = null }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    word,
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(glossMeaning, style = MaterialTheme.typography.bodyLarge)
+                if (glossAdded) {
+                    Text(
+                        stringResource(R.string.gloss_added),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    Button(onClick = {
+                        glossAdded = true
+                        viewModel.addGlossWord(word)
+                    }) {
+                        Text(stringResource(R.string.gloss_add))
+                    }
+                }
+            }
         }
     }
 
@@ -302,17 +350,31 @@ fun ChatScreen(onBack: () -> Unit) {
                     }
                 }
                 items(count = state.messages.size) { index ->
-                    Bubble(state.messages[index])
+                    Bubble(state.messages[index], onGlossTap = { word, gloss ->
+                        glossAdded = false
+                        glossSheet = word to gloss
+                    })
                 }
             }
 
             state.error?.let { error ->
-                Text(
-                    error,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Regenerate the last reply (drops the failed attempt).
+                    TextButton(onClick = viewModel::retry) {
+                        Text(stringResource(R.string.common_retry))
+                    }
+                }
             }
 
             // Voice mode state: listening / thinking / speaking.
@@ -334,6 +396,7 @@ fun ChatScreen(onBack: () -> Unit) {
                         state.voiceListening -> stringResource(R.string.cards_listening)
                         state.speakingReply -> stringResource(R.string.chat_voice_speaking)
                         state.busy -> stringResource(R.string.chat_voice_thinking)
+                        state.voicePaused -> stringResource(R.string.chat_voice_paused)
                         else -> stringResource(R.string.chat_voice_speaking)
                     }
                     Text(
@@ -358,6 +421,7 @@ fun ChatScreen(onBack: () -> Unit) {
                 input = state.input,
                 busy = state.busy,
                 voice = state.voice,
+                paused = state.voicePaused,
                 onInputChange = viewModel::onInputChange,
                 onSend = viewModel::send,
                 onMicToggle = {
@@ -370,13 +434,19 @@ fun ChatScreen(onBack: () -> Unit) {
                         micPermission.launch(Manifest.permission.RECORD_AUDIO)
                     }
                 },
+                onPauseToggle = {
+                    viewModel.setVoicePaused(!state.voicePaused)
+                },
             )
         }
     }
 }
 
 @Composable
-private fun Bubble(message: UiMessage) {
+private fun Bubble(
+    message: UiMessage,
+    onGlossTap: (word: String, gloss: String) -> Unit = { _, _ -> },
+) {
     val isUser = message.role == "user"
 
     Row(
@@ -403,12 +473,68 @@ private fun Bubble(message: UiMessage) {
             ) {
                 if (message.role == "assistant" && message.content.isEmpty()) {
                     Text("…", style = MaterialTheme.typography.bodyMedium)
-                } else {
+                } else if (isUser) {
                     Text(message.content, style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    GlossText(message.content, onGlossTap)
                 }
             }
         }
     }
+}
+
+/** Matches glossed items like "el abrigo (coat)": up to 3 words + short gloss. */
+private val glossPattern = Regex("(\\p{L}[\\p{L}’'-]*(?:\\s\\p{L}[\\p{L}’'-]*){0,2})\\s*\\(([^()]{1,40})\\)")
+
+/** Chat text where glossed spans (word + parenthesized meaning) are tappable. */
+@Composable
+private fun GlossText(content: String, onGlossTap: (String, String) -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    val layout = remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    val annotated = remember(content) {
+        val builder = androidx.compose.ui.text.AnnotatedString.Builder(content)
+        glossPattern.findAll(content).forEach { m ->
+            val wordPart = m.groupValues[1].trim()
+            val glossPart = m.groupValues[2].trim()
+            // Corrections or parenthetical prose are not glosses: require a
+            // short, clean gloss without digits.
+            val isGloss =
+                wordPart.split(" ").size <= 3 &&
+                    glossPart.isNotBlank() &&
+                    glossPart.none { it.isDigit() }
+            if (isGloss) {
+                builder.addStyle(
+                    SpanStyle(color = primary, textDecoration = TextDecoration.Underline),
+                    m.range.first,
+                    m.range.last + 1,
+                )
+                builder.addStringAnnotation(
+                    "gloss",
+                    "$wordPart\u0000$glossPart",
+                    m.range.first,
+                    m.range.last + 1,
+                )
+            }
+        }
+        builder.toAnnotatedString()
+    }
+
+    Text(
+        text = annotated,
+        style = MaterialTheme.typography.bodyMedium,
+        onTextLayout = { layout.value = it },
+        modifier = Modifier.pointerInput(annotated) {
+            detectTapGestures { position ->
+                val l = layout.value ?: return@detectTapGestures
+                val offset = l.getOffsetForPosition(position)
+                val hit = annotated.getStringAnnotations("gloss", offset, offset).firstOrNull()
+                if (hit != null) {
+                    val parts = hit.item.split("\u0000")
+                    if (parts.size == 2) onGlossTap(parts[0], parts[1])
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -416,9 +542,11 @@ private fun InputBar(
     input: String,
     busy: Boolean,
     voice: Boolean,
+    paused: Boolean,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onMicToggle: () -> Unit,
+    onPauseToggle: () -> Unit,
 ) {
     SendBar(
         value = input,
@@ -427,11 +555,20 @@ private fun InputBar(
         onValueChange = onInputChange,
         onSend = onSend,
         micSlot = {
+            if (voice) {
+                IconButton(onClick = onPauseToggle) {
+                    Text(
+                        if (paused) "▶" else "⏸",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             IconButton(onClick = onMicToggle) {
                 Text(
-                    if (voice) "🎙" else "🎙️",
+                    "🎙️",
                     style = MaterialTheme.typography.titleLarge,
-                    color = if (voice) {
+                    color = if (voice && !paused) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant

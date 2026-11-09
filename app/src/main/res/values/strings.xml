@@ -63,6 +63,12 @@
     <string name="cards_heard">Heard: “%1$s”</string>
     <string name="cards_heard_notquite"> — not quite, try again</string>
     <string name="cards_no_words">No tracked words yet. Chat with the tutor or run the placement quiz first.</string>
+    <string name="cards_level_all">All</string>
+    <string name="gloss_add">Add to my words</string>
+    <string name="gloss_added">Added ✓</string>
+    <string name="chat_voice_paused">Paused</string>
+    <string name="chat_voice_pause">Pause</string>
+    <string name="chat_voice_resume">Resume</string>
     <string name="cards_error_mic">Microphone access is needed for spoken practice.</string>
     <string name="cards_error_speech">Speech recognition is not available on this device.</string>
     <string name="cards_error_fetch">Meanings could not be fetched (%1$s); cards work with reveal only.</string>

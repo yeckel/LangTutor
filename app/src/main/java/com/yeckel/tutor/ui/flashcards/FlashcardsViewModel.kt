@@ -8,6 +8,7 @@ import com.yeckel.tutor.data.ChatMessage
 import com.yeckel.tutor.data.MeaningCheck
 import com.yeckel.tutor.data.ProgressWord
 import com.yeckel.tutor.data.SpeechSupport
+import com.yeckel.tutor.data.TutorConfig
 import com.yeckel.tutor.data.VocabRepository
 import com.yeckel.tutor.data.extractJsonPayload
 import com.yeckel.tutor.data.meaningList
@@ -45,6 +46,9 @@ data class FlashcardUiState(
     val autoListen: Boolean = false,
     val paused: Boolean = false,
     val error: String? = null,
+    // Deck filter: practice only words in the current vocabulary tier.
+    val levelOnly: Boolean = false,
+    val vocabLevel: String = "",
 )
 
 /** Shape(s) the model may use when translating: lists or single strings. */
@@ -81,6 +85,45 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
     init {
         start()
+    }
+
+    /**
+     * Deck filter toggle: rebuilds the deck from tracked words, restricted to
+     * the words that belong to the current vocabulary tier (or all levels).
+     * Counters restart — it is a new training session.
+     */
+    fun setLevelOnly(on: Boolean) {
+        viewModelScope.launch {
+            val config = container.settings.current()
+            val deck = deckFor(config, on)
+            _uiState.update {
+                it.copy(
+                    levelOnly = on,
+                    vocabLevel = config.vocabLevel,
+                    phase = FlashcardPhase.STUDY,
+                    words = deck.shuffled(),
+                    index = 0,
+                    revealed = false,
+                    correct = 0,
+                    missed = 0,
+                    input = "",
+                    outcome = null,
+                    spokenText = null,
+                    spokenMatch = null,
+                    error = null,
+                )
+            }
+        }
+    }
+
+    private suspend fun deckFor(config: TutorConfig, levelOnly: Boolean): List<ProgressWord> {
+        val all = container.progress.readKnownWords()
+            .filter { it.language == languageKey }
+        if (!levelOnly) return all
+        val tierWords = container.vocab
+            .wordsFor(config.language, config.vocabLevel)
+            .toSet()
+        return all.filter { it.word in tierWords }
     }
 
     private fun start() {
@@ -142,6 +185,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
                     speakSource = config.speakSource,
                     speakMeanings = config.speakMeanings,
                     autoListen = config.autoListen,
+                    vocabLevel = config.vocabLevel,
                 )
             }
         }

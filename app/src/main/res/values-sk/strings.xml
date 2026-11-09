@@ -59,6 +59,12 @@
     <string name="cards_heard">Vypočuté: „%1$s“</string>
     <string name="cards_heard_notquite"> — nie úplne ono, skúste znova</string>
     <string name="cards_no_words">Zatiaľ žiadne sledované slová. Píšte si s učiteľom, spustite zistenie úrovne alebo slová pridajte.</string>
+    <string name="cards_level_all">Všetky</string>
+    <string name="gloss_add">Pridať k mojim slovám</string>
+    <string name="gloss_added">Pridané ✓</string>
+    <string name="chat_voice_paused">Pozastavené</string>
+    <string name="chat_voice_pause">Pozastaviť</string>
+    <string name="chat_voice_resume">Pokračovať</string>
     <string name="cards_error_mic">Pre rozprávaný tréning je potrebný mikrofón.</string>
     <string name="cards_error_speech">Rozpoznávanie reči nie je na tomto zariadení dostupné.</string>
     <string name="cards_error_fetch">Významy sa nepodarilo stiahnuť (%1$s); kartičky fungujú len s odkrytím.</string>

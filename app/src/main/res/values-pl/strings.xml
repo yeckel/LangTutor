@@ -59,6 +59,12 @@
     <string name="cards_heard">Usłyszano: „%1$s”</string>
     <string name="cards_heard_notquite"> — nie do końca, spróbuj jeszcze raz</string>
     <string name="cards_no_words">Jeszcze brak śledzonych słów. Pogadaj z autorem, sprawdź poziom albo dodaj słowa.</string>
+    <string name="cards_level_all">Wszystkie</string>
+    <string name="gloss_add">Dodaj do moich słów</string>
+    <string name="gloss_added">Dodano ✓</string>
+    <string name="chat_voice_paused">Wstrzymane</string>
+    <string name="chat_voice_pause">Wstrzymaj</string>
+    <string name="chat_voice_resume">Wznów</string>
     <string name="cards_error_mic">Do mówionego treningu potrzebny jest mikrofon.</string>
     <string name="cards_error_speech">Rozpoznawanie mowy nie jest na tym urządzeniu dostępne.</string>
     <string name="cards_error_fetch">Nie udało się pobrać znaczeń (%1$s); fiszki tylko pokazują odpowiedź.</string>
