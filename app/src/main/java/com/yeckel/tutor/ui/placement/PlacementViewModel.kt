@@ -7,6 +7,7 @@ import com.yeckel.tutor.data.ChatMessage
 import com.yeckel.tutor.data.PlacementVerdict
 import com.yeckel.tutor.data.VocabRepository
 import com.yeckel.tutor.data.clampVocabLevel
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.extractJsonPayload
 import com.yeckel.tutor.ui.chat.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,7 +84,7 @@ class PlacementViewModel(private val container: AppContainer) : ViewModel() {
                     }
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(error = e.message ?: "Could not reach the Ollama server") }
+                    _uiState.update { it.copy(error = e.message ?: container.string(R.string.placement_error_reach)) }
                 },
             )
         }
@@ -140,7 +141,7 @@ class PlacementViewModel(private val container: AppContainer) : ViewModel() {
                     }
                     if (parsed.isFailure) {
                         _uiState.update {
-                            it.copy(busy = false, error = "Could not read the level verdict — try again.")
+                            it.copy(busy = false, error = container.string(R.string.placement_error_verdict))
                         }
                         return
                     }
@@ -154,7 +155,7 @@ class PlacementViewModel(private val container: AppContainer) : ViewModel() {
                 },
                 onFailure = { e ->
                     _uiState.update {
-                        it.copy(busy = false, error = e.message ?: "Could not score the quiz")
+                        it.copy(busy = false, error = e.message ?: container.string(R.string.placement_error_score))
                     }
                 },
             )

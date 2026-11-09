@@ -17,12 +17,16 @@ import com.yeckel.tutor.data.VocabRepository
  * picked on the start screen and picked up by the chat screen.
  */
 class AppContainer(context: Context) {
-    val settings = SettingsRepository(context.applicationContext)
+    val appContext: Context = context.applicationContext
+    val settings = SettingsRepository(appContext)
     val ollama = OllamaClient(settings)
     val articles = ArticleFetcher()
-    val vocab = VocabRepository(context.applicationContext)
-    val progress = ProgressRepository(context.applicationContext)
-    val tts = TtsManager(context.applicationContext)
+    val vocab = VocabRepository(appContext)
+    val progress = ProgressRepository(appContext)
+    val tts = TtsManager(appContext)
+
+    /** Localized string for ViewModels (screen strings use stringResource). */
+    fun string(resourceId: Int, vararg args: Any): String = appContext.getString(resourceId, *args)
 
     var currentArticle: Article? = null
     var pendingContinue: Boolean = false

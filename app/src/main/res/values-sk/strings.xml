@@ -1,0 +1,117 @@
+<resources>
+    <string name="app_name">LangTutor</string>
+
+    <string name="common_continue">Pokračovať</string>
+    <string name="common_back">Späť</string>
+    <string name="common_done">Hotovo</string>
+    <string name="common_next">Ďalej</string>
+    <string name="common_finish">Dokončiť</string>
+    <string name="common_add">Pridať</string>
+    <string name="common_retry">Skúsiť znova</string>
+
+    <string name="start_subtitle">Cvičte jazyk rozprávaním o reálnych webových článkoch.</string>
+    <string name="start_continue_label">Pokračovať v poslednej konverzácii</string>
+    <string name="start_webpage_link">Odkaz na webovú stránku</string>
+    <string name="start_load_article">Načítať článok</string>
+    <string name="start_reload_article">Načítať znova</string>
+    <string name="start_paste_text">Namiesto toho vložiť text</string>
+    <string name="start_paste_label">Vložený text článku</string>
+    <string name="start_paste_use">Použiť tento text</string>
+    <string name="start_link_instead">Namiesto toho použiť odkaz</string>
+    <string name="start_find_level">Zistiť moju úroveň</string>
+    <string name="start_my_words">Moje slová</string>
+    <string name="start_error_load">Stránku sa nepodarilo načítať</string>
+
+    <string name="chat_answer_placeholder">Odpovedajte v jazyku, ktorý cvičíte…</string>
+    <string name="chat_too_hard">Príliš ťažké</string>
+    <string name="chat_just_right">Akorát</string>
+    <string name="chat_too_easy">Príliš ľahké</string>
+    <string name="chat_read_on">🔊 zapnuté</string>
+    <string name="chat_read_off">🔇 vypnuté</string>
+    <string name="chat_error_model">Nie je vybraný model. Otvorte Nastavenia, stiahnite zoznam a vyberte.</string>
+    <string name="chat_error_request">Požiadavka zlyhala</string>
+
+    <string name="cards_title">Kartičky</string>
+    <string name="cards_switch_word">slovo</string>
+    <string name="cards_switch_meaning">význam</string>
+    <string name="cards_switch_listen">počúvať</string>
+    <string name="cards_meaning_in">Význam v jazyku %1$s</string>
+    <string name="cards_check">Skontrolovať</string>
+    <string name="cards_say_it">Povedz to</string>
+    <string name="cards_idontknow">Neviem</string>
+    <string name="cards_listening">Počúvam…</string>
+    <string name="cards_asking">Pýtam sa učiteľa…</string>
+    <string name="cards_fetching">Sťahujem významy…</string>
+    <string name="cards_training_done">Tréning dokončený</string>
+    <string name="cards_you_knew">Vedeli ste %1$d z %2$d kartičiek.</string>
+    <string name="cards_accepted">✓ Prijaté — %1$s = %2$s</string>
+    <string name="cards_not_accepted">✗ Neprijaté — %1$s: %2$s</string>
+    <string name="cards_meaning_prefix">Význam: %1$s</string>
+    <string name="cards_expected">očakávané: %1$s</string>
+    <string name="cards_hint_no_meaning">Pre toto slovo nie je uložený význam — tlačidlo „Neviem“ ho ukáže.</string>
+    <string name="cards_hint_consult_fail">Učiteľa sa nepodarilo oslovit (%1$s). Skúste znova, alebo tlačidlo „Neviem“ význam ukáže.</string>
+    <string name="cards_hint_listening_paused">Počúvanie tejto kartičky je pozastavené — tlačidlo „Povedz to“ pre ďalší pokus.</string>
+    <string name="cards_heard">Vypočuté: „%1$s“</string>
+    <string name="cards_heard_notquite"> — nie úplne ono, skúste znova</string>
+    <string name="cards_no_words">Zatiaľ žiadne sledované slová. Píšte si s učiteľom, spustite zistenie úrovne alebo slová pridajte.</string>
+    <string name="cards_error_mic">Pre rozprávaný tréning je potrebný mikrofón.</string>
+    <string name="cards_error_speech">Rozpoznávanie reči nie je na tomto zariadení dostupné.</string>
+    <string name="cards_error_fetch">Významy sa nepodarilo stiahnuť (%1$s); kartičky fungujú len s odkrytím.</string>
+
+    <string name="words_title">Slová</string>
+    <string name="words_level_progress">Postup v úrovniach</string>
+    <string name="words_tier_now"> • teraz</string>
+    <string name="words_tier_done"> ✓</string>
+    <string name="words_mastered_stat">%1$d zvládnutých z %2$d cvičených (%3$d v úrovni)</string>
+    <string name="words_intro_stat">predstavených %1$d · použitých %2$d</string>
+    <string name="words_cards_stat">kartičky %1$d/%2$d</string>
+    <string name="words_tier_complete">Úroveň dokončená!</string>
+    <string name="words_unlock_text">Zvládli ste dost slov úrovne %1$s. Odomknúť %2$s a nechať učiteľa používať bohatšiu slovnú zásobu?</string>
+    <string name="words_unlock_button">Odomknúť %1$s</string>
+    <string name="words_train">Trénovať kartičkami</string>
+    <string name="words_tracked_hint">Sledované z konverzácií. Klepnutím na slovo prepnete známe/počiatočné.</string>
+    <string name="words_add_label">Pridať slovo</string>
+    <string name="words_none">Zatiaľ žiadne sledované slová. Píšte si s učiteľom, spustite zistenie úrovne alebo slová pridajte vyššie.</string>
+
+    <string name="placement_title">Zistenie mojej úrovne</string>
+    <string name="placement_generating">Generujem otázky…</string>
+    <string name="placement_scoring">Vyhodnocujem odpovede…</string>
+    <string name="placement_your_level">Vaša úroveň</string>
+    <string name="placement_apply">Použiť úroveň %1$s</string>
+    <string name="placement_maybe_later">Možno neskôr</string>
+    <string name="placement_error_model">Nie je vybraný model. Najprv ho vyberte v Nastaveniach.</string>
+    <string name="placement_error_questions">Model nevrátil žiadne otázky; skúste znova alebo zvoľte iný model.</string>
+    <string name="placement_error_reach">K serveru Ollama sa nepodarilo pripojiť</string>
+    <string name="placement_error_score">Test sa nepodarilo ohodnotiť</string>
+    <string name="placement_error_verdict">Výsledok sa nepodarilo načítať — skúste znova.</string>
+    <string name="placement_applied">Použité — úroveň slovnej zásoby je aktualizovaná a slová zaznamenané.</string>
+    <string name="placement_words_known">Slová zaznamenané ako známe:</string>
+
+    <string name="settings_title">Nastavenia</string>
+    <string name="nav_settings">Nastavenia</string>
+    <string name="settings_ollama_url">Adresa Ollama servera</string>
+    <string name="settings_url_supporting">Emulátor: http://10.0.2.2:11434 · Na telefóne: http://IP-počítača:11434</string>
+    <string name="settings_api_key">Klíč API (nepovinné)</string>
+    <string name="settings_api_key_hint">Potrebné len vtedy, keď server beží za proxy s prihlásením.</string>
+    <string name="settings_practice_language">Cvičený jazyk</string>
+    <string name="settings_practice_hint">Jazyk, ktorým učiteľ hovorí, napr. angličtina, nemčina, francúzština…</string>
+    <string name="settings_app_language">Jazyk aplikácie</string>
+    <string name="settings_app_language_system">Podľa systému</string>
+    <string name="settings_help_language">Váš jazyk (pomocný jazyk)</string>
+    <string name="settings_help_hint">Váš rodný jazyk — významy slov, nápady a poznámky učiteľa.</string>
+    <string name="settings_vocab_level">Úroveň slovnej zásoby</string>
+    <string name="settings_vocab_hint">Slová, ktoré učiteľ môže považovať za známe (úrovne podobné Duolingu). Nové slová sú zriedkavé a vysvetlené v zátvorke.</string>
+    <string name="settings_model">Model</string>
+    <string name="settings_fetch_models">Načítať dostupné modely</string>
+    <string name="settings_fetching_models">Načítavam modely…</string>
+    <string name="settings_read_aloud">Čítať odpovede nahlas</string>
+    <string name="settings_read_aloud_hint">Odpovede učiteľa sa postupne vypočúvajú v cvičenom jazyku.</string>
+    <string name="settings_speak_words">Automaticky vyslovovať slová</string>
+    <string name="settings_speak_words_hint">Každá kartička sa vysloví v cvičenom jazyku.</string>
+    <string name="settings_speak_meanings">Automaticky vyslovovať významy</string>
+    <string name="settings_speak_meanings_hint">Významy sa vyslovia vo vašom jazyku pri odkrytí.</string>
+    <string name="settings_save">Uložiť nastavenia</string>
+    <string name="settings_saved">Nastavenia uložené</string>
+    <string name="settings_tracked_words">Sledované slová z konverzácií: %1$d</string>
+    <string name="settings_error_models_empty">Na tomto serveri nie sú žiadne modely.</string>
+</resources>

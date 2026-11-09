@@ -3,6 +3,7 @@ package com.yeckel.tutor.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.Article
 import com.yeckel.tutor.data.ChatMessage
 import com.yeckel.tutor.data.Difficulty
@@ -191,7 +192,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
         if (config.model.isBlank()) {
             _uiState.update {
-                it.copy(busy = false, error = "No model selected. Open Settings, fetch the model list and pick one.")
+                it.copy(busy = false, error = container.string(R.string.chat_error_model))
             }
             return
         }
@@ -244,7 +245,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                 }
             }
         } catch (e: Exception) {
-            _uiState.update { it.copy(error = e.message ?: "The request failed") }
+            _uiState.update { it.copy(error = e.message ?: container.string(R.string.chat_error_request)) }
         } finally {
             val reply = buffer.toString()
             if (reply.isNotEmpty()) {

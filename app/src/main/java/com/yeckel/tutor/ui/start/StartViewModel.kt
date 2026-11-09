@@ -3,6 +3,7 @@ package com.yeckel.tutor.ui.start
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.Article
 import com.yeckel.tutor.data.LessonProgress
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +56,7 @@ class StartViewModel(private val container: AppContainer) : ViewModel() {
                     },
                     onFailure = { e ->
                         _uiState.update {
-                            it.copy(loading = false, error = e.message ?: "Could not load the page")
+                            it.copy(loading = false, error = e.message ?: container.string(R.string.start_error_load))
                         }
                     },
                 )

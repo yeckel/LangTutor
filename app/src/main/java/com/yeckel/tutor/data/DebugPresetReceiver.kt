@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,6 +87,12 @@ class DebugPresetReceiver : BroadcastReceiver() {
                     },
                 )
                 settings.save(updated)
+                intent.getStringExtra(EXTRA_APP_LANG)?.trim()?.takeIf { it.isNotEmpty() }?.let { lang ->
+                    AppCompatDelegate.setApplicationLocales(
+                        if (lang == "system") LocaleListCompat.getEmptyLocaleList()
+                        else LocaleListCompat.forLanguageTags(lang),
+                    )
+                }
                 Log.i(
                     TAG,
                     "preset applied: url=${updated.baseUrl} model=${updated.model} " +
@@ -116,5 +124,6 @@ class DebugPresetReceiver : BroadcastReceiver() {
         const val EXTRA_AUTO_LISTEN = "auto_listen"
         const val EXTRA_SEED_WORDS = "seed_words"
         const val EXTRA_LANGUAGE_CODE = "lang"
+        const val EXTRA_APP_LANG = "app_lang"
     }
 }

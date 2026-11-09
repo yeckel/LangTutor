@@ -3,6 +3,7 @@ package com.yeckel.tutor.ui.flashcards
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeckel.tutor.AppContainer
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.ChatMessage
 import com.yeckel.tutor.data.MeaningCheck
 import com.yeckel.tutor.data.ProgressWord
@@ -213,7 +214,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
 
         if (word.meaningList.isEmpty()) {
             _uiState.update {
-                it.copy(error = "No meaning stored for this word — 'I don't know' shows it.")
+                it.copy(error = container.string(R.string.cards_hint_no_meaning))
             }
             return
         }
@@ -278,7 +279,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun onMicPermissionDenied() =
-        _uiState.update { it.copy(error = "Microphone access is needed for spoken practice.") }
+        _uiState.update { it.copy(error = container.string(R.string.cards_error_mic)) }
 
     /** Card-side speak toggles; they persist to the same settings. */
     fun toggleSpeakSource(checked: Boolean) {
@@ -315,7 +316,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun onSpeechUnavailable() =
-        _uiState.update { it.copy(error = "Speech recognition is not available on this device.") }
+        _uiState.update { it.copy(error = container.string(R.string.cards_error_speech)) }
 
     /** Learner gives up: counts as missed, shows all meanings. */
     fun giveUp() {
@@ -329,7 +330,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
             it.copy(
                 revealed = true,
                 missed = it.missed + 1,
-                outcome = "Meaning: ${word.meaningList.take(3).ifEmpty { listOf("(none)") }.joinToString(" / ")}",
+                outcome = container.string(R.string.cards_meaning_prefix, word.meaningList.take(3).ifEmpty { listOf("(none)") }.joinToString(" / ")),
                 outcomeCorrect = false,
             )
         }
@@ -361,7 +362,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { container.progress.recordTrainMissed(languageKey, word.word) }
         _uiState.update {
             it.copy(
-                outcome = "✗ Not accepted — ${word.word}: $note",
+                outcome = container.string(R.string.cards_not_accepted, word.word, note),
                 outcomeCorrect = false,
                 missed = it.missed + 1,
                 revealed = true,
@@ -386,7 +387,7 @@ class FlashcardsViewModel(private val container: AppContainer) : ViewModel() {
         }
         _uiState.update {
             it.copy(
-                outcome = "✓ Accepted — ${word.word} = ${typedOrSpoken.trim()}" +
+                outcome = container.string(R.string.cards_accepted, word.word, typedOrSpoken.trim()) +
                     (note?.takeIf { n -> n.isNotBlank() }?.let { n -> " ($n)" } ?: ""),
                 outcomeCorrect = true,
                 correct = it.correct + 1,

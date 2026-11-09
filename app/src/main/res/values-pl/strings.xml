@@ -1,0 +1,117 @@
+<resources>
+    <string name="app_name">LangTutor</string>
+
+    <string name="common_continue">Kontynuuj</string>
+    <string name="common_back">Wstecz</string>
+    <string name="common_done">Gotowe</string>
+    <string name="common_next">Dalej</string>
+    <string name="common_finish">Zakończ</string>
+    <string name="common_add">Dodaj</string>
+    <string name="common_retry">Spróbuj ponownie</string>
+
+    <string name="start_subtitle">Ćwicz język, rozmawiając o prawdziwych artykułach z sieci.</string>
+    <string name="start_continue_label">Kontynuuj ostatnią rozmowę</string>
+    <string name="start_webpage_link">Link do strony</string>
+    <string name="start_load_article">Wczytaj artykuł</string>
+    <string name="start_reload_article">Wczytaj ponownie</string>
+    <string name="start_paste_text">Zamiast tego wklej tekst</string>
+    <string name="start_paste_label">Wklejony tekst artykułu</string>
+    <string name="start_paste_use">Użyj tego tekstu</string>
+    <string name="start_link_instead">Zamiast tego użyj linku</string>
+    <string name="start_find_level">Sprawdź mój poziom</string>
+    <string name="start_my_words">Moje słowa</string>
+    <string name="start_error_load">Nie udało się wczytać strony</string>
+
+    <string name="chat_answer_placeholder">Odpowiadaj w języku, który ćwiczysz…</string>
+    <string name="chat_too_hard">Za trudne</string>
+    <string name="chat_just_right">W sam raz</string>
+    <string name="chat_too_easy">Za łatwe</string>
+    <string name="chat_read_on">🔊 wł.</string>
+    <string name="chat_read_off">🔇 wył.</string>
+    <string name="chat_error_model">Nie wybrano modelu. Otwórz Ustawienia, pobierz listę i wybierz.</string>
+    <string name="chat_error_request">Żądanie się nie powiodło</string>
+
+    <string name="cards_title">Fiszki</string>
+    <string name="cards_switch_word">słowo</string>
+    <string name="cards_switch_meaning">znaczenie</string>
+    <string name="cards_switch_listen">słuchaj</string>
+    <string name="cards_meaning_in">Znaczenie w języku %1$s</string>
+    <string name="cards_check">Sprawdź</string>
+    <string name="cards_say_it">Powiedz to</string>
+    <string name="cards_idontknow">Nie wiem</string>
+    <string name="cards_listening">Słucham…</string>
+    <string name="cards_asking">Pytam autora…</string>
+    <string name="cards_fetching">Pobieram znaczenia…</string>
+    <string name="cards_training_done">Trening zakończony</string>
+    <string name="cards_you_knew">Znałeś %1$d z %2$d fiszek.</string>
+    <string name="cards_accepted">✓ Zaakceptowane — %1$s = %2$s</string>
+    <string name="cards_not_accepted">✗ Odrzucone — %1$s: %2$s</string>
+    <string name="cards_meaning_prefix">Znaczenie: %1$s</string>
+    <string name="cards_expected">oczekiwane: %1$s</string>
+    <string name="cards_hint_no_meaning">Brak zapisanego znaczenia tego słowa — \'Nie wiem\' je pokaże.</string>
+    <string name="cards_hint_consult_fail">Nie udało się zapytać autora (%1$s). Spróbuj ponownie albo \'Nie wiem\' pokaże znaczenie.</string>
+    <string name="cards_hint_listening_paused">Słuchanie tej fiszki wstrzymane — \'Powiedz to\' aby spróbować.</string>
+    <string name="cards_heard">Usłyszano: „%1$s”</string>
+    <string name="cards_heard_notquite"> — nie do końca, spróbuj jeszcze raz</string>
+    <string name="cards_no_words">Jeszcze brak śledzonych słów. Pogadaj z autorem, sprawdź poziom albo dodaj słowa.</string>
+    <string name="cards_error_mic">Do mówionego treningu potrzebny jest mikrofon.</string>
+    <string name="cards_error_speech">Rozpoznawanie mowy nie jest na tym urządzeniu dostępne.</string>
+    <string name="cards_error_fetch">Nie udało się pobrać znaczeń (%1$s); fiszki tylko pokazują odpowiedź.</string>
+
+    <string name="words_title">Słowa</string>
+    <string name="words_level_progress">Postęp poziomów</string>
+    <string name="words_tier_now"> • teraz</string>
+    <string name="words_tier_done"> ✓</string>
+    <string name="words_mastered_stat">%1$d opanowane z %2$d ćwiczonych (%3$d w poziomie)</string>
+    <string name="words_intro_stat">wprowadzone %1$d · użyte %2$d</string>
+    <string name="words_cards_stat">fiszki %1$d/%2$d</string>
+    <string name="words_tier_complete">Poziom ukończony!</string>
+    <string name="words_unlock_text">Opanowałeś dość słów poziomu %1$s. Odblokować %2$s i pozwolić autorowi na bogatszy słownik?</string>
+    <string name="words_unlock_button">Odblokuj %1$s</string>
+    <string name="words_train">Trenuj fiszkami</string>
+    <string name="words_tracked_hint">Śledzone z rozmów. Kliknij słowo, aby przełączyć znane/w trakcie.</string>
+    <string name="words_add_label">Dodaj słowo</string>
+    <string name="words_none">Jeszcze brak śledzonych słów. Porozmawiaj z autorem, sprawdź poziom albo dodaj słowa wyżej.</string>
+
+    <string name="placement_title">Sprawdź mój poziom</string>
+    <string name="placement_generating">Generuję pytania…</string>
+    <string name="placement_scoring">Oceniam odpowiedzi…</string>
+    <string name="placement_your_level">Twój poziom</string>
+    <string name="placement_apply">Zastosuj poziom %1$s</string>
+    <string name="placement_maybe_later">Może później</string>
+    <string name="placement_error_model">Nie wybrano modelu. Najpierw wybierz go w Ustawieniach.</string>
+    <string name="placement_error_questions">Model nie zwrócił pytań; spróbuj ponownie albo wybierz inny model.</string>
+    <string name="placement_error_reach">Nie udało się połączyć z serwerem Ollama</string>
+    <string name="placement_error_score">Nie udało się ocenić testu</string>
+    <string name="placement_error_verdict">Nie udało się odczytać wyniku — spróbuj ponownie.</string>
+    <string name="placement_applied">Zastosowano — poziom słownictwa zaktualizowany, słowa zapisane.</string>
+    <string name="placement_words_known">Słowa zapisane jako znane:</string>
+
+    <string name="settings_title">Ustawienia</string>
+    <string name="nav_settings">Ustawienia</string>
+    <string name="settings_ollama_url">Serwer Ollama (URL)</string>
+    <string name="settings_url_supporting">Emulator: http://10.0.2.2:11434 · Na telefonie: http://IP-komputera:11434</string>
+    <string name="settings_api_key">Klucz API (opcjonalnie)</string>
+    <string name="settings_api_key_hint">Potrzebny tylko, gdy serwer jest za proxy z logowaniem.</string>
+    <string name="settings_practice_language">Ćwiczony język</string>
+    <string name="settings_practice_hint">Język, którym mówi autor, np. angielski, hiszpański, niemiecki…</string>
+    <string name="settings_app_language">Język aplikacji</string>
+    <string name="settings_app_language_system">Jak system</string>
+    <string name="settings_help_language">Twój język (pomocniczy)</string>
+    <string name="settings_help_hint">Twój język ojczysty — znaczenia słów, podpowiedzi i uwagi autora.</string>
+    <string name="settings_vocab_level">Poziom słownictwa</string>
+    <string name="settings_vocab_hint">Słowa, które autor może uznać za znane (poziomy jak w Duolingo). Nowe słowa są rzadkie i wyjaśniane w nawiasie.</string>
+    <string name="settings_model">Model</string>
+    <string name="settings_fetch_models">Pobierz dostępne modele</string>
+    <string name="settings_fetching_models">Pobieram modele…</string>
+    <string name="settings_read_aloud">Czytaj odpowiedzi na głos</string>
+    <string name="settings_read_aloud_hint">Odpowiedzi autora czytane progresywnie w ćwiczonym języku.</string>
+    <string name="settings_speak_words">Automatycznie mówione słowa</string>
+    <string name="settings_speak_words_hint">Każda fiszka jest wypowiadana w ćwiczonym języku.</string>
+    <string name="settings_speak_meanings">Automatycznie mówione znaczenia</string>
+    <string name="settings_speak_meanings_hint">Znaczenia wypowiadane w Twoim języku po odsłonięciu.</string>
+    <string name="settings_save">Zapisz ustawienia</string>
+    <string name="settings_saved">Ustawienia zapisane</string>
+    <string name="settings_tracked_words">Śledzone słowa rozmów: %1$d</string>
+    <string name="settings_error_models_empty">Na tym serwerze nie ma zainstalowanych modeli.</string>
+</resources>

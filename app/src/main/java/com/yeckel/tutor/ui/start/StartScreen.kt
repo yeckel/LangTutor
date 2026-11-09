@@ -28,11 +28,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yeckel.tutor.R
 import com.yeckel.tutor.rememberAppContainer
 
 @Composable
@@ -59,7 +61,7 @@ fun StartScreen(
         ) {
             Text("Tutor", style = MaterialTheme.typography.displaySmall)
             Text(
-                "Practice a language by talking about real webpages.",
+                stringResource(R.string.start_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -71,7 +73,7 @@ fun StartScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            "Continue last conversation",
+                            stringResource(R.string.start_continue_label),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -99,7 +101,7 @@ fun StartScreen(
                 OutlinedTextField(
                     value = state.url,
                     onValueChange = viewModel::onUrlChange,
-                    label = { Text("Webpage link") },
+                    label = { Text(stringResource(R.string.start_webpage_link)) },
                     placeholder = { Text("https://…") },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Uri,
@@ -120,16 +122,24 @@ fun StartScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (state.article == null) "Load article" else "Reload article")
+                    Text(
+                        stringResource(
+                            if (state.article == null) {
+                                R.string.start_load_article
+                            } else {
+                                R.string.start_reload_article
+                            },
+                        ),
+                    )
                 }
                 TextButton(onClick = { viewModel.onTogglePasted(true) }) {
-                    Text("Paste text instead")
+                    Text(stringResource(R.string.start_paste_text))
                 }
             } else {
                 OutlinedTextField(
                     value = state.pastedText,
                     onValueChange = viewModel::onPastedTextChange,
-                    label = { Text("Paste article text") },
+                    label = { Text(stringResource(R.string.start_paste_label)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 160.dp),
@@ -139,10 +149,10 @@ fun StartScreen(
                     enabled = state.pastedText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Use this text")
+                    Text(stringResource(R.string.start_paste_use))
                 }
                 TextButton(onClick = { viewModel.onTogglePasted(false) }) {
-                    Text("Use a webpage link instead")
+                    Text(stringResource(R.string.start_link_instead))
                 }
             }
 
@@ -183,13 +193,13 @@ fun StartScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 TextButton(onClick = onFindLevel, modifier = Modifier.weight(1f)) {
-                    Text("Find my level")
+                    Text(stringResource(R.string.start_find_level))
                 }
                 TextButton(onClick = onOpenWords, modifier = Modifier.weight(1f)) {
-                    Text("My words")
+                    Text(stringResource(R.string.start_my_words))
                 }
                 TextButton(onClick = onOpenSettings) {
-                    Text("Settings")
+                    Text(stringResource(R.string.nav_settings))
                 }
             }
         }

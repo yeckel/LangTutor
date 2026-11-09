@@ -30,8 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yeckel.tutor.R
 import com.yeckel.tutor.rememberAppContainer
 import com.yeckel.tutor.ui.common.Bubble
 import com.yeckel.tutor.ui.common.SendBar
@@ -63,7 +65,7 @@ fun PlacementScreen(onBack: () -> Unit) {
             .imePadding(),
         topBar = {
             TopAppBar(
-                title = { Text("Place my level") },
+                title = { Text(stringResource(R.string.placement_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -110,7 +112,7 @@ fun PlacementScreen(onBack: () -> Unit) {
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
                             )
-                            Text("Generating questions…", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.placement_generating), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -128,7 +130,7 @@ fun PlacementScreen(onBack: () -> Unit) {
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
                             )
-                            Text("Scoring your answers…", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.placement_scoring), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -141,7 +143,7 @@ fun PlacementScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    TextButton(onClick = viewModel::retry) { Text("Try again") }
+                    TextButton(onClick = viewModel::retry) { Text(stringResource(R.string.common_retry)) }
                 }
             }
 
@@ -174,7 +176,7 @@ private fun PlacementResult(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "Your level",
+            stringResource(R.string.placement_your_level),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -188,7 +190,7 @@ private fun PlacementResult(
         }
         if (knownWords.isNotEmpty()) {
             Text(
-                "Words recorded as known: " + knownWords.take(12).joinToString(", ") +
+                stringResource(R.string.placement_words_known) + " " + knownWords.take(12).joinToString(", ") +
                     if (knownWords.size > 12) " …" else "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -203,7 +205,7 @@ private fun PlacementResult(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Done")
+                        Text(stringResource(R.string.common_done))
                     }
                 } else {
                     Button(
@@ -211,13 +213,13 @@ private fun PlacementResult(
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Apply level ${level.ifBlank { "A1" }}")
+                        Text(stringResource(R.string.placement_apply, level.ifBlank { "A1" }))
                     }
                 }
             }
         }
 
         Spacer(Modifier.height(4.dp))
-        TextButton(onClick = onBack) { Text("Maybe later") }
+        TextButton(onClick = onBack) { Text(stringResource(R.string.placement_maybe_later)) }
     }
 }

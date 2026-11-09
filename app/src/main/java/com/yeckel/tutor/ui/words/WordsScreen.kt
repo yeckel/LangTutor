@@ -31,11 +31,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.data.ProgressWord
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.TierProgress
 import com.yeckel.tutor.data.isKnown
 import com.yeckel.tutor.rememberAppContainer
@@ -72,8 +74,7 @@ fun WordsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                "Level progress",
+            Text(stringResource(R.string.words_level_progress),
                 style = MaterialTheme.typography.labelLarge,
             )
             state.tiers.forEach { tier ->
@@ -91,12 +92,11 @@ fun WordsScreen(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            "You mastered enough ${state.vocabLevel} words. " +
-                                "Unlock ${it.level} and let the tutor use richer vocabulary?",
+                            stringResource(R.string.words_unlock_text, state.vocabLevel, it.level),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Button(onClick = viewModel::unlockNext, modifier = Modifier.fillMaxWidth()) {
-                            Text("Unlock ${it.level}")
+                            Text(stringResource(R.string.words_unlock_button, it.level))
                         }
                     }
                 }
@@ -107,7 +107,7 @@ fun WordsScreen(
                 enabled = state.words.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Train with flash cards")
+                Text(stringResource(R.string.words_train))
             }
             Text(
                 "Tracked from conversations. Tap a word to toggle known/learning.",
@@ -122,12 +122,12 @@ fun WordsScreen(
                 OutlinedTextField(
                     value = newWord,
                     onValueChange = viewModel::onNewWordChange,
-                    label = { Text("Add a word") },
+                    label = { Text(stringResource(R.string.words_add_label)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = viewModel::addWord, enabled = newWord.isNotBlank()) {
-                    Text("Add")
+                    Text(stringResource(R.string.common_add))
                 }
             }
 
@@ -169,7 +169,9 @@ private fun TierRow(tier: TierProgress, current: Boolean) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                tier.level + if (current) " • now" else if (complete) " ✓" else "",
+                tier.level +
+                    if (current) stringResource(R.string.words_tier_now)
+                    else if (complete) stringResource(R.string.words_tier_done) else "",
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(end = 8.dp),
             )
@@ -178,7 +180,7 @@ private fun TierRow(tier: TierProgress, current: Boolean) {
                 modifier = Modifier.weight(1f).height(8.dp),
             )
             Text(
-                "${tier.mastered} mastered of ${tier.tracked} practiced (${tier.totalWords} in tier)",
+                stringResource(R.string.words_mastered_stat, tier.mastered, tier.tracked, tier.totalWords),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp),

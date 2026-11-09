@@ -35,9 +35,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yeckel.tutor.R
 import com.yeckel.tutor.rememberAppContainer
 import com.yeckel.tutor.ui.common.SendBar
 import com.yeckel.tutor.data.Difficulty
@@ -101,7 +103,7 @@ fun ChatScreen(onBack: () -> Unit) {
                 },
                 actions = {
                     TextButton(onClick = { viewModel.toggleReadAloud(!state.readAloud) }) {
-                        Text(if (state.readAloud) "🔊 on" else "🔇 off")
+                        Text(if (state.readAloud) stringResource(R.string.chat_read_on) else stringResource(R.string.chat_read_off))
                     }
                 },
             )
@@ -122,17 +124,17 @@ fun ChatScreen(onBack: () -> Unit) {
                 FilterChip(
                     selected = state.difficulty == Difficulty.TOO_HARD,
                     onClick = { viewModel.onDifficultyChange(Difficulty.TOO_HARD) },
-                    label = { Text("Too hard") },
+                    label = { Text(stringResource(R.string.chat_too_hard)) },
                 )
                 FilterChip(
                     selected = state.difficulty == Difficulty.JUST_RIGHT,
                     onClick = { viewModel.onDifficultyChange(Difficulty.JUST_RIGHT) },
-                    label = { Text("Just right") },
+                    label = { Text(stringResource(R.string.chat_just_right)) },
                 )
                 FilterChip(
                     selected = state.difficulty == Difficulty.TOO_EASY,
                     onClick = { viewModel.onDifficultyChange(Difficulty.TOO_EASY) },
-                    label = { Text("Too easy") },
+                    label = { Text(stringResource(R.string.chat_too_easy)) },
                 )
             }
 
@@ -223,7 +225,7 @@ private fun InputBar(
     SendBar(
         value = input,
         busy = busy,
-        placeholder = "Answer in the language you practice…",
+        placeholder = stringResource(R.string.chat_answer_placeholder),
         onValueChange = onInputChange,
         onSend = onSend,
     )

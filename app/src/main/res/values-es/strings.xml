@@ -1,0 +1,117 @@
+<resources>
+    <string name="app_name">LangTutor</string>
+
+    <string name="common_continue">Continuar</string>
+    <string name="common_back">Atrás</string>
+    <string name="common_done">Hecho</string>
+    <string name="common_next">Siguiente</string>
+    <string name="common_finish">Terminar</string>
+    <string name="common_add">Añadir</string>
+    <string name="common_retry">Reintentar</string>
+
+    <string name="start_subtitle">Practica un idioma hablando sobre páginas web reales.</string>
+    <string name="start_continue_label">Continuar la última conversación</string>
+    <string name="start_webpage_link">Enlace de la página web</string>
+    <string name="start_load_article">Cargar artículo</string>
+    <string name="start_reload_article">Recargar artículo</string>
+    <string name="start_paste_text">Pegar texto en su lugar</string>
+    <string name="start_paste_label">Pegar el texto del artículo</string>
+    <string name="start_paste_use">Usar este texto</string>
+    <string name="start_link_instead">Usar un enlace de página web</string>
+    <string name="start_find_level">Medir mi nivel</string>
+    <string name="start_my_words">Mis palabras</string>
+    <string name="start_error_load">No se pudo cargar la página</string>
+
+    <string name="chat_answer_placeholder">Responde en el idioma que practicas…</string>
+    <string name="chat_too_hard">Muy difícil</string>
+    <string name="chat_just_right">En su punto</string>
+    <string name="chat_too_easy">Muy fácil</string>
+    <string name="chat_read_on">🔊 encendido</string>
+    <string name="chat_read_off">🔇 apagado</string>
+    <string name="chat_error_model">No hay modelo elegido. Abre Ajustes, busca la lista y elige uno.</string>
+    <string name="chat_error_request">La solicitud falló</string>
+
+    <string name="cards_title">Tarjetas</string>
+    <string name="cards_switch_word">palabra</string>
+    <string name="cards_switch_meaning">significado</string>
+    <string name="cards_switch_listen">escuchar</string>
+    <string name="cards_meaning_in">Significado en %1$s</string>
+    <string name="cards_check">Comprobar</string>
+    <string name="cards_say_it">Dilo</string>
+    <string name="cards_idontknow">No lo sé</string>
+    <string name="cards_listening">Escuchando…</string>
+    <string name="cards_asking">Consultando al tutor…</string>
+    <string name="cards_fetching">Buscando significados…</string>
+    <string name="cards_training_done">Entrenamiento terminado</string>
+    <string name="cards_you_knew">Acertaste %1$d de %2$d tarjetas.</string>
+    <string name="cards_accepted">✓ Aceptado — %1$s = %2$s</string>
+    <string name="cards_not_accepted">✗ No aceptado — %1$s: %2$s</string>
+    <string name="cards_meaning_prefix">Significado: %1$s</string>
+    <string name="cards_expected">se esperaba: %1$s</string>
+    <string name="cards_hint_no_meaning">Sin significado guardado para esta palabra — \'No lo sé\' lo muestra.</string>
+    <string name="cards_hint_consult_fail">No se pudo consultar al tutor (%1$s). Reintenta, o \'No lo sé\' muestra el significado.</string>
+    <string name="cards_hint_listening_paused">Escucha en pausa para esta tarjeta — \'Dilo\' para reintentar.</string>
+    <string name="cards_heard">Escuchado: “%1$s”</string>
+    <string name="cards_heard_notquite"> — no es exacto, inténtalo otra vez</string>
+    <string name="cards_no_words">Aún no hay palabras. Habla con el tutor, haz el test de nivel o añade palabras.</string>
+    <string name="cards_error_mic">Se necesita acceso al micrófono para la práctica hablada.</string>
+    <string name="cards_error_speech">El reconocimiento de voz no está disponible en este dispositivo.</string>
+    <string name="cards_error_fetch">No se pudieron buscar los significados (%1$s); las tarjetas solo funcionan con revelación.</string>
+
+    <string name="words_title">Palabras</string>
+    <string name="words_level_progress">Progreso por nivel</string>
+    <string name="words_tier_now"> • ahora</string>
+    <string name="words_tier_done"> ✓</string>
+    <string name="words_mastered_stat">%1$d dominadas de %2$d practicadas (%3$d en el nivel)</string>
+    <string name="words_intro_stat">introducidas %1$d · usadas %2$d</string>
+    <string name="words_cards_stat">tarjetas %1$d/%2$d</string>
+    <string name="words_tier_complete">¡Nivel completado!</string>
+    <string name="words_unlock_text">Dominaste suficientes palabras de %1$s. ¿Desbloquear %2$s y dejar que el tutor use vocabulario más rico?</string>
+    <string name="words_unlock_button">Desbloquear %1$s</string>
+    <string name="words_train">Entrenar con tarjetas</string>
+    <string name="words_tracked_hint">Rastreadas de las conversaciones. Toca una palabra para cambiar conocida/aprendiendo.</string>
+    <string name="words_add_label">Añadir palabra</string>
+    <string name="words_none">Aún no hay palabras rastreadas. Habla con el tutor, haz el test de nivel o añade palabras.</string>
+
+    <string name="placement_title">Medir mi nivel</string>
+    <string name="placement_generating">Generando preguntas…</string>
+    <string name="placement_scoring">Evaluando respuestas…</string>
+    <string name="placement_your_level">Tu nivel</string>
+    <string name="placement_apply">Aplicar nivel %1$s</string>
+    <string name="placement_maybe_later">Quizá más tarde</string>
+    <string name="placement_error_model">No hay modelo elegido. Elige uno en Ajustes primero.</string>
+    <string name="placement_error_questions">El modelo no devolvió preguntas; reintenta o usa otro modelo.</string>
+    <string name="placement_error_reach">No se pudo conectar con el servidor Ollama</string>
+    <string name="placement_error_score">No se pudo evaluar el test</string>
+    <string name="placement_error_verdict">No se pudo leer el resultado del nivel — reintenta.</string>
+    <string name="placement_applied">Aplicado — tu nivel de vocabulario se actualizó y las palabras quedaron registradas.</string>
+    <string name="placement_words_known">Palabras registradas como conocidas:</string>
+
+    <string name="settings_title">Ajustes</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="settings_ollama_url">Servidor Ollama (URL)</string>
+    <string name="settings_url_supporting">Emulador: http://10.0.2.2:11434 · En tu teléfono: http://IP-del-ordenador:11434</string>
+    <string name="settings_api_key">Clave API (opcional)</string>
+    <string name="settings_api_key_hint">Solo si tu servidor está detrás de un proxy con autenticación.</string>
+    <string name="settings_practice_language">Idioma que practicas</string>
+    <string name="settings_practice_hint">El idioma que habla el tutor, p. ej. español, alemán, francés…</string>
+    <string name="settings_app_language">Idioma de la aplicación</string>
+    <string name="settings_app_language_system">Según el sistema</string>
+    <string name="settings_help_language">Tu idioma (idioma de ayuda)</string>
+    <string name="settings_help_hint">Tu idioma nativo — significados, notas y ayudas del tutor.</string>
+    <string name="settings_vocab_level">Nivel de vocabulario</string>
+    <string name="settings_vocab_hint">Palabras que el tutor puede dar por conocidas (niveles tipo Duolingo). Las palabras nuevas son pocas y vienen explicadas.</string>
+    <string name="settings_model">Modelo</string>
+    <string name="settings_fetch_models">Buscar modelos disponibles</string>
+    <string name="settings_fetching_models">Buscando modelos…</string>
+    <string name="settings_read_aloud">Leer respuestas en voz alta</string>
+    <string name="settings_read_aloud_hint">Las respuestas del tutor se leen progresivamente, en el idioma que practicas.</string>
+    <string name="settings_speak_words">Decir palabras automáticamente</string>
+    <string name="settings_speak_words_hint">Cada tarjeta se lee en el idioma que practicas.</string>
+    <string name="settings_speak_meanings">Decir significados automáticamente</string>
+    <string name="settings_speak_meanings_hint">Los significados se leen en tu idioma al mostrarse.</string>
+    <string name="settings_save">Guardar ajustes</string>
+    <string name="settings_saved">Ajustes guardados</string>
+    <string name="settings_tracked_words">Palabras rastreadas en tus chats: %1$d</string>
+    <string name="settings_error_models_empty">No hay modelos instalados en ese servidor.</string>
+</resources>

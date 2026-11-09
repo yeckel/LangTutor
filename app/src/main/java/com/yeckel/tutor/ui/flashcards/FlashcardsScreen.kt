@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.data.SpeechSupport
 import com.yeckel.tutor.data.VocabRepository
+import com.yeckel.tutor.R
 import com.yeckel.tutor.data.meaningList
 import com.yeckel.tutor.rememberAppContainer
 import kotlinx.coroutines.delay
@@ -260,9 +262,9 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                 title = {
                     Text(
                         if (state.phase == FlashcardPhase.STUDY && state.words.isNotEmpty()) {
-                            "Flash cards · ${state.index + 1}/${state.words.size}"
+                            stringResource(R.string.cards_title) + " · ${state.index + 1}/${state.words.size}"
                         } else {
-                            "Flash cards"
+                            stringResource(R.string.cards_title)
                         },
                     )
                 },
@@ -290,7 +292,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                 ) {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(12.dp))
-                    Text("Fetching meanings…", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.cards_fetching), style = MaterialTheme.typography.bodySmall)
                 }
             }
 
@@ -303,9 +305,9 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("Training done", style = MaterialTheme.typography.headlineMedium)
+                    Text(stringResource(R.string.cards_training_done), style = MaterialTheme.typography.headlineMedium)
                     Text(
-                        "You knew ${state.correct} of ${state.words.size} cards.",
+                        stringResource(R.string.cards_you_knew, state.correct, state.words.size),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     state.error?.let {
@@ -317,7 +319,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                         )
                     }
                     Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Done")
+                        Text(stringResource(R.string.common_done))
                     }
                 }
             }
@@ -341,7 +343,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                             ) {
                                 PulsingDot()
                                 Text(
-                                    "Listening…",
+                                    stringResource(R.string.cards_listening),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -354,15 +356,15 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("word", style = MaterialTheme.typography.labelSmall)
+                                    Text(stringResource(R.string.cards_switch_word), style = MaterialTheme.typography.labelSmall)
                                     Switch(checked = state.speakSource, onCheckedChange = viewModel::toggleSpeakSource)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("meaning", style = MaterialTheme.typography.labelSmall)
+                                    Text(stringResource(R.string.cards_switch_meaning), style = MaterialTheme.typography.labelSmall)
                                     Switch(checked = state.speakMeanings, onCheckedChange = viewModel::toggleSpeakMeanings)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("listen", style = MaterialTheme.typography.labelSmall)
+                                    Text(stringResource(R.string.cards_switch_listen), style = MaterialTheme.typography.labelSmall)
                                     Switch(checked = state.autoListen, onCheckedChange = viewModel::toggleAutoListen)
                                 }
                             }
@@ -408,7 +410,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 OutlinedTextField(
                                     value = state.input,
                                     onValueChange = viewModel::onTyped,
-                                    label = { Text("Meaning in ${state.helpLanguage.ifBlank { "English" }}") },
+                                    label = { Text(stringResource(R.string.cards_meaning_in, state.helpLanguage.ifBlank { "English" })) },
                                     singleLine = true,
                                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                         imeAction = androidx.compose.ui.text.input.ImeAction.Done,
@@ -422,7 +424,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                     onClick = viewModel::checkMeaning,
                                     enabled = state.input.isNotBlank() && !state.checking,
                                 ) {
-                                    Text("Check")
+                                    Text(stringResource(R.string.cards_check))
                                 }
                             }
 
@@ -435,7 +437,7 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp,
                                     )
-                                    Text("Asking the tutor…", style = MaterialTheme.typography.bodySmall)
+                                    Text(stringResource(R.string.cards_asking), style = MaterialTheme.typography.bodySmall)
                                 }
                             }
 
@@ -444,10 +446,10 @@ fun FlashcardsScreen(onBack: () -> Unit) {
                                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                             ) {
                                 Button(onClick = { onSayIt() }) {
-                                    Text("Say it")
+                                    Text(stringResource(R.string.cards_say_it))
                                 }
                                 TextButton(onClick = viewModel::giveUp) {
-                                    Text("I don't know")
+                                    Text(stringResource(R.string.cards_idontknow))
                                 }
                             }
 
