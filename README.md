@@ -40,17 +40,23 @@ endpoints behind an authenticated proxy).
 - **Voice conversation (chat)** — tap the 🎙 button next to Send for a
   ChatGPT-style spoken loop: the mic listens (live transcript appears in the
   input), your speech is sent automatically, the reply streams + is read aloud
-  progressively, and the mic re-opens as soon as the reply finishes. Enabling
-  voice mode also switches read-aloud on and persists it; disable the mic to
-  go back to typing only.
+  progressively, and the mic re-opens shortly after the reply finishes. The mic
+  never opens while the app is still speaking (echo protection), and the loop
+  pauses on errors. Enabling voice mode also switches read-aloud on and
+  persists it; disable the mic to go back to typing only (mixing both is fine).
 - **Speak-everything switches** — Settings: *Speak words automatically* (each
   card is read in the practice language) and *Speak meanings automatically*
   (meanings are read in your help language when revealed). Both persist;
   answers are only checked, never auto-spoken (so *Say it* practice stays
   meaningful).
-- **Settings** — Ollama server URL, optional API key, practice language,
-  vocabulary level, and model selection (fetched live from the server's model
-  list; fetch tests the values currently in the fields, before saving).
+- **Settings** — Ollama server URL, optional API key, practice language, help
+  language, vocabulary level, model selection (fetched live from the server's
+  model list; fetch tests the values currently in the fields, before saving),
+  the read-aloud / speak-automation switches, and the **app language** picker.
+- **App language (UI)** — choose the interface language itself in Settings:
+  English, Čeština, Español, Deutsch, Polski, Slovenčina, or *system default*.
+  The choice persists and overrides the phone language (AppCompat per-app
+  locales), with all screens translated.
 
 ## Project layout
 
@@ -68,8 +74,8 @@ app/src/main/java/com/yeckel/tutor/
 │   ├── Article.kt
 │   └── VocabRepository.kt                          # tiered known-word lists from assets
 └── ui/
-    ├── AppNavHost.kt                               # start → chat / settings
-    ├── start/  chat/  settings/                    # Screen + ViewModel pairs (chat has TutorPrompt.kt)
+    ├── AppNavHost.kt                               # nav graph: start → chat / words / flashcards / placement / settings
+    ├── start/  chat/  settings/  words/  flashcards/  placement/   # Screen + ViewModel pairs (chat has TutorPrompt.kt)
     └── theme/
 
 app/src/main/assets/vocab/<lang>/<LEVEL>.json       # generated word lists (A0–B1)
@@ -131,8 +137,7 @@ vocabulary. What was built:
   - the large majority of every reply consists of words from the active list;
   - at most 1–2 **new** words per message;
   - new words that are not inferable from context get an inline gloss in the
-    learner's help language, e.g. `el abrigo (coat)` (gloss language is
-    currently fixed to English);
+    learner's help language, e.g. `el abrigo (coat)`;
   - the tutor prefers rephrasing with known words over difficult vocabulary.
 - **Live comprehension control on the chat screen:** **Too hard / Just right /
   Too easy** chips; the current selection is folded into the system prompt for
@@ -190,22 +195,42 @@ What was built:
     the prompt's known-word set updates automatically on the next chat.
 - Requires the `RECORD_AUDIO` permission (requested in context on first use).
 
-### Step 4 — Voice practice
+### Step 3c — ✅ Level progression: tier mastery & unlocks (shipped)
 
-- Android TTS reads tutor replies aloud (language matched to the practice
-  language; offline Google voices fine).
-- Speech recognition (Android `SpeechRecognizer`) for dictating answers.
-- Optional: let the model help with pronunciation feedback via phonetic
-  transcription of what it heard vs. expected.
+- The *My words* screen shows a **Level progress** section: per-tier mastery
+  rows (mastered vs practiced, with bars; the current tier and completed tiers
+  marked).
+- Completing a tier (enough practiced words with ≥80% mastered) shows an
+  **Unlock next tier** card; unlocking raises the vocabulary level so the tutor
+  may use richer vocabulary — manual gating instead of a silent jump.
+
+### Step 4 — ✅ Voice practice & spoken conversation (shipped)
+
+- Android TTS reads tutor replies aloud **progressively** — sentence by
+  sentence as the model streams them, language matched to the practice
+  language; chat top-bar toggle and the Settings switches persist.
+- Speech recognition (Android `SpeechRecognizer`) for the flash-card *Say it*
+  practice: auto-listen after TTS, retries with a budget, pause/resume, and a
+  *Listening* indicator. "I don't know" (typed or spoken — recognized in
+  several languages) counts as a miss and reveals the meanings.
+- **Voice conversation** in chat (see the feature list above): spoken turns
+  auto-send, replies are read aloud, and the mic re-opens only when the reply
+  is completely spoken (echo protection).
+- Answer checking is LLM-judged and tolerant (synonyms, dropped articles,
+  pronoun-prefixed forms); only exact form matches skip the model call.
+- Optional: pronunciation feedback via phonetic transcription of what it heard
+  vs. expected — still open.
 
 ### Step 5 — Chat UX refinements
 
+- Flash-card deck filtered to the current tier (deck covers all levels now).
 - Corrections as distinct rendering (wrong → right → reason), not inline text. *(partially shipped: flash cards render per-word state)*
 - Tappable glosses: tap a glossed word → add to a personal word list / show a
   mini explanation card.
 - Conversation archive (the *last* lesson already resumes; a full history view
   is future work).
 - Retry/regenerate button when generation fails or quality disappoints.
+- Optional pronunciation-feedback pass (Step 4 leftover).
 
 ### Step 6 — Robustness & quality
 
@@ -224,10 +249,13 @@ Debug builds register a one-command configuration preset for device testing:
 ```
 adb shell am broadcast -a com.yeckel.tutor.DEBUG_CONFIG \
   --es url "https://ollama.com" --es key "YOUR_API_KEY" \
-  --es model "gemma4:31b" --ez read_aloud true
+  --es model "gemma4:31b" --ez read_aloud true --es app_lang "cs"
 ```
 
-Omitted extras keep their current values. Not compiled into release builds.
+Omitted extras keep their current values; `app_lang` accepts `system`, `en`,
+`cs`, `es`, `de`, `pl`, `sk` and applies the per-app locale immediately. A
+second broadcast, `com.yeckel.tutor.DEBUG_SEED_WORDS`, seeds the word tracker
+for quick testing. Not compiled into release builds.
 
 ## Roadmap ideas (parking lot)
 

@@ -33,7 +33,7 @@ fun tutorPrompt(
         buildString {
             appendLine("Vocabulary control: the exact known-word list is unavailable for this language.")
             appendLine("Use very simple, high-frequency vocabulary suitable for a beginner (roughly A1 level),")
-            appendLine("keep sentences short, and gloss any harder word in round brackets with its English meaning.")
+            appendLine("keep sentences short, and gloss any harder word in round brackets with its meaning in the learner's help language ($helpLanguage).")
         }
     }
 
