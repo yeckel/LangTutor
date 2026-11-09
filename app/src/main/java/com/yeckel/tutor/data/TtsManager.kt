@@ -53,9 +53,12 @@ class TtsManager(private val context: Context) {
     val isReady: Boolean get() = ready
 
     fun speak(text: String, languageTag: String, flush: Boolean = true, onDone: (() -> Unit)? = null) {
-        if (text.isBlank()) return
         val tts = engine
-        if (tts == null || !ready) return
+        if (tts == null || !ready || text.isBlank()) {
+            // The callback contract must hold even when nothing is spoken.
+            if (onDone != null) mainHandler.post { onDone() }
+            return
+        }
         tts.language = Locale.forLanguageTag(languageTag)
         val utteranceId = "tutor-${utteranceCounter.incrementAndGet()}"
         if (onDone != null) doneCallbacks[utteranceId] = onDone

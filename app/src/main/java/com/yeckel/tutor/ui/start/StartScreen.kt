@@ -174,7 +174,7 @@ fun StartScreen(
                 }
                 Spacer(Modifier.height(4.dp))
                 Button(onClick = onStartChat, modifier = Modifier.fillMaxWidth()) {
-                    Text("Start conversation")
+                    Text(stringResource(R.string.start_start_chat))
                 }
             }
 

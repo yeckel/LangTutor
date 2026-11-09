@@ -20,6 +20,8 @@
     <string name="start_link_instead">Usar un enlace de página web</string>
     <string name="start_find_level">Medir mi nivel</string>
     <string name="start_my_words">Mis palabras</string>
+    <string name="start_start_chat">Iniciar conversación</string>
+    <string name="chat_empty_hint">Carga una página web en la pantalla de inicio para empezar una conversación.</string>
     <string name="start_error_load">No se pudo cargar la página</string>
 
     <string name="chat_answer_placeholder">Responde en el idioma que practicas…</string>
@@ -29,6 +31,9 @@
     <string name="chat_read_on">🔊 encendido</string>
     <string name="chat_read_off">🔇 apagado</string>
     <string name="chat_error_model">No hay modelo elegido. Abre Ajustes, busca la lista y elige uno.</string>
+    <string name="chat_voice_thinking">Pensando…</string>
+    <string name="chat_voice_speaking">Hablando…</string>
+    <string name="chat_voice_mic">Conversación por voz</string>
     <string name="chat_error_request">La solicitud falló</string>
 
     <string name="cards_title">Tarjetas</string>

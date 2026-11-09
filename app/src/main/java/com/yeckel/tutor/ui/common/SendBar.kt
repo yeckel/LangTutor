@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
-/** Chat-style input row (text field + send button), reused by all screens. */
+/** Chat-style input row (text field + optional mic slot + send button), reused by all screens. */
 @Composable
 fun SendBar(
     value: String,
@@ -28,6 +28,7 @@ fun SendBar(
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     sendLabel: String = "Send",
+    micSlot: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -46,6 +47,7 @@ fun SendBar(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
         )
+        micSlot?.invoke()
         Button(onClick = onSend, enabled = !busy && value.isNotBlank()) {
             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = sendLabel)
         }

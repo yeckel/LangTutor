@@ -1,5 +1,18 @@
 package com.yeckel.tutor.ui.chat
 
+import android.Manifest
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,20 +46,28 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.R
 import com.yeckel.tutor.rememberAppContainer
 import com.yeckel.tutor.ui.common.SendBar
 import com.yeckel.tutor.data.Difficulty
+import com.yeckel.tutor.data.SpeechSupport
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val container = rememberAppContainer()
     val viewModel: ChatViewModel = viewModel { ChatViewModel(container) }
     val state by viewModel.uiState.collectAsState()
@@ -64,6 +85,123 @@ fun ChatScreen(onBack: () -> Unit) {
     // TTS ready for progressive reading; silenced when leaving the chat.
     LaunchedEffect(Unit) { container.tts.warmup() }
     DisposableEffect(Unit) { onDispose { container.tts.stop() } }
+
+    // ---- Voice conversation mode -------------------------------------------
+    val micPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && !viewModel.uiState.value.voice) viewModel.toggleVoice(true)
+        }
+
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    var listeningLocally by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val recognizer = if (SpeechRecognizer.isRecognitionAvailable(context)) {
+        remember { SpeechRecognizer.createSpeechRecognizer(context) }
+    } else {
+        remember { null }
+    }
+
+    fun micTag(): String =
+        SpeechSupport.localeFor(state.languageKey)?.toLanguageTag() ?: "en-US"
+
+    fun startVoiceListen() {
+        val rec = recognizer ?: return
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, micTag())
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        }
+        viewModel.onVoiceListening(true)
+        listeningLocally = true
+        rec.startListening(intent)
+    }
+
+    fun stopVoiceListen(silent: Boolean = false) {
+        recognizer?.stopListening()
+        if (!silent) viewModel.onVoiceListening(false)
+        listeningLocally = false
+    }
+
+    /** Reopens the mic when nothing was understood — conversation keeps going. */
+    fun rescheduleVoiceListen(delayMs: Long) {
+        mainHandler.postDelayed({
+            val st = viewModel.uiState.value
+            if (st.voice && !st.busy && st.error == null) startVoiceListen()
+        }, delayMs)
+    }
+
+    DisposableEffect(recognizer) {
+        recognizer?.setRecognitionListener(object : android.speech.RecognitionListener {
+            override fun onReadyForSpeech(params: android.os.Bundle?) {}
+
+            override fun onEndOfSpeech() {
+                listeningLocally = false
+            }
+
+            override fun onRmsChanged(rmsdB: Float) {}
+
+            override fun onBufferReceived(buffer: ByteArray?) {}
+
+            override fun onBeginningOfSpeech() {}
+
+            override fun onError(error: Int) {
+                listeningLocally = false
+                viewModel.onVoiceListening(false)
+                when (error) {
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> Unit // the turn effects recover
+                    SpeechRecognizer.ERROR_NO_MATCH ->
+                        rescheduleVoiceListen(1000L)
+                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                        rescheduleVoiceListen(1000L) // silence while the user thinks
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+                        viewModel.onInputChange("") // permission path handled by the button
+                    else ->
+                        rescheduleVoiceListen(1500L)
+                }
+            }
+
+            override fun onResults(results: android.os.Bundle?) {
+                listeningLocally = false
+                viewModel.onVoiceListening(false)
+                val best = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                if (!best.isNullOrBlank()) viewModel.onVoiceFinal(best)
+            }
+
+            override fun onPartialResults(partialResults: android.os.Bundle?) {
+                val partial = partialResults
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                if (!partial.isNullOrBlank()) viewModel.onVoicePartial(partial)
+            }
+
+            override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+        })
+        onDispose {
+            recognizer?.run { stopListening(); destroy() }
+            mainHandler.removeCallbacksAndMessages(null)
+        }
+    }
+
+    // Mic must be closed while the model answers and while the reply is spoken,
+    // otherwise the recognizer hears the TTS itself.
+    LaunchedEffect(state.busy) {
+        if (state.busy && state.voice) stopVoiceListen()
+    }
+
+    // Reopen the mic when voice mode starts and after each spoken reply.
+    LaunchedEffect(state.voice, state.voiceTurn, state.busy, state.error) {
+        if (!state.voice || state.busy || state.error != null) return@LaunchedEffect
+        if (listeningLocally) return@LaunchedEffect
+        kotlinx.coroutines.delay(400)
+        if (viewModel.uiState.value.voice && !viewModel.uiState.value.busy) {
+            startVoiceListen()
+        }
+    }
 
     // Keep the newest text in view, also while streaming into the last bubble.
     val lastContentLength = state.messages.lastOrNull()?.content?.length ?: 0
@@ -149,7 +287,7 @@ fun ChatScreen(onBack: () -> Unit) {
                 if (state.messages.isEmpty() && !state.busy) {
                     item {
                         Text(
-                            "Load a webpage on the start screen to begin a conversation.",
+                            stringResource(R.string.chat_empty_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -169,11 +307,60 @@ fun ChatScreen(onBack: () -> Unit) {
                 )
             }
 
+            // Voice mode state: listening / thinking / speaking.
+            if (state.voice) {
+                val pulse = rememberInfiniteTransition(label = "voice-pulse")
+                val scale by pulse.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.12f,
+                    animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
+                    label = "voice-scale",
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val label = when {
+                        state.voiceListening -> stringResource(R.string.cards_listening)
+                        state.busy -> stringResource(R.string.chat_voice_thinking)
+                        else -> stringResource(R.string.chat_voice_speaking)
+                    }
+                    Text(
+                        "🎙",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = if (state.voiceListening) {
+                            Modifier.graphicsLayer { scaleX = scale; scaleY = scale }
+                        } else {
+                            Modifier
+                        },
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+
             InputBar(
                 input = state.input,
                 busy = state.busy,
+                voice = state.voice,
                 onInputChange = viewModel::onInputChange,
                 onSend = viewModel::send,
+                onMicToggle = {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.RECORD_AUDIO,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        viewModel.toggleVoice(!state.voice)
+                    } else {
+                        micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
             )
         }
     }
@@ -219,8 +406,10 @@ private fun Bubble(message: UiMessage) {
 private fun InputBar(
     input: String,
     busy: Boolean,
+    voice: Boolean,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
+    onMicToggle: () -> Unit,
 ) {
     SendBar(
         value = input,
@@ -228,5 +417,18 @@ private fun InputBar(
         placeholder = stringResource(R.string.chat_answer_placeholder),
         onValueChange = onInputChange,
         onSend = onSend,
+        micSlot = {
+            IconButton(onClick = onMicToggle) {
+                Text(
+                    if (voice) "🎙" else "🎙️",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (voice) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        },
     )
 }

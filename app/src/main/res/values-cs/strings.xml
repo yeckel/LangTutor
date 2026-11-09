@@ -20,6 +20,8 @@
     <string name="start_link_instead">Místo toho použít odkaz na web</string>
     <string name="start_find_level">Zjistit mou úroveň</string>
     <string name="start_my_words">Moje slova</string>
+    <string name="start_start_chat">Spustit konverzaci</string>
+    <string name="chat_empty_hint">Na úvodní obrazovce načtěte webovou stránku a začněte konverzaci.</string>
     <string name="start_error_load">Stránku se nepodařilo načíst</string>
 
     <string name="chat_answer_placeholder">Odpovídejte v jazyce, který procvičujete…</string>
@@ -29,6 +31,9 @@
     <string name="chat_read_on">🔊 zapnuto</string>
     <string name="chat_read_off">🔇 vypnuto</string>
     <string name="chat_error_model">Není vybrán model. Otevřete Nastavení, stáhněte seznam a vyberte.</string>
+    <string name="chat_voice_thinking">Přemýšlím…</string>
+    <string name="chat_voice_speaking">Mluvím…</string>
+    <string name="chat_voice_mic">Hlasová konverzace</string>
     <string name="chat_error_request">Požadavek selhal</string>
 
     <string name="cards_title">Kartičky</string>

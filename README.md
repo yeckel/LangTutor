@@ -37,6 +37,12 @@ endpoints behind an authenticated proxy).
   and train them: written meaning checks and *Say it* pronunciation practice
   (speech recognition in the practice language). Correct answers strengthen
   the word automatically.
+- **Voice conversation (chat)** — tap the 🎙 button next to Send for a
+  ChatGPT-style spoken loop: the mic listens (live transcript appears in the
+  input), your speech is sent automatically, the reply streams + is read aloud
+  progressively, and the mic re-opens as soon as the reply finishes. Enabling
+  voice mode also switches read-aloud on and persists it; disable the mic to
+  go back to typing only.
 - **Speak-everything switches** — Settings: *Speak words automatically* (each
   card is read in the practice language) and *Speak meanings automatically*
   (meanings are read in your help language when revealed). Both persist;

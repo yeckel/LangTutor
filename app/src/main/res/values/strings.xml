@@ -22,6 +22,8 @@
     <string name="start_link_instead">Use a webpage link instead</string>
     <string name="start_find_level">Find my level</string>
     <string name="start_my_words">My words</string>
+    <string name="start_start_chat">Start conversation</string>
+    <string name="chat_empty_hint">Load a webpage on the start screen to begin a conversation.</string>
     <string name="start_error_load">Could not load the page</string>
 
     <!-- chat -->
@@ -32,6 +34,9 @@
     <string name="chat_read_on">🔊 on</string>
     <string name="chat_read_off">🔇 off</string>
     <string name="chat_error_model">No model selected. Open Settings, fetch the model list and pick one.</string>
+    <string name="chat_voice_thinking">Thinking…</string>
+    <string name="chat_voice_speaking">Speaking…</string>
+    <string name="chat_voice_mic">Voice conversation</string>
     <string name="chat_error_request">The request failed</string>
 
     <!-- flashcards -->
