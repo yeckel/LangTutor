@@ -90,10 +90,11 @@ tools/build_vocab.py                                # regenerates the lists (see
   `OLLAMA_HOST=0.0.0.0 ollama serve`, or (if you use the Ollama desktop app)
   enable its *Expose Ollama to the network* setting; then use
   `http://<your-computer-ip>:11434` (Linux: `ip addr`, macOS: `ipconfig getifaddr en0`).
-- **Hosted / remote server** — raw Ollama has no authentication, so if it is
-  accessible beyond your LAN, put a small reverse proxy (Caddy, nginx, …) with
-  a bearer token in front of it and enter that URL + key in Settings; the app
-  sends the key as `Authorization: Bearer …`.
+- **Hosted / Ollama cloud** — the app also works against **ollama.com directly**:
+  set the *Ollama server URL* to `https://ollama.com` and paste your **API key**
+  into the *API key* field (sent as `Authorization: Bearer …`). The model list
+  then shows the available cloud models (gemma4, glm, kimi, gpt-oss, …).
+  Works from any network - no local server or port forwarding needed.
 - **Model** — tap *Fetch available models* and pick one. Language-tutoring
   quality varies by model; gemma / qwen / llama families in 7–8B+ sizes handle
   Spanish well.
@@ -209,6 +210,18 @@ What was built:
 - HTTPS-only once the server setup allows it (drop `usesCleartextTraffic`).
 - Optional: OpenAI-compatible endpoint support (Ollama also exposes `/v1`) so
   any compatible backend works, not just Ollama.
+
+## Debug helper (development)
+
+Debug builds register a one-command configuration preset for device testing:
+
+```
+adb shell am broadcast -a com.yeckel.tutor.DEBUG_CONFIG \
+  --es url "https://ollama.com" --es key "YOUR_API_KEY" \
+  --es model "gemma4:31b" --ez read_aloud true
+```
+
+Omitted extras keep their current values. Not compiled into release builds.
 
 ## Roadmap ideas (parking lot)
 
