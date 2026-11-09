@@ -24,9 +24,29 @@ import kotlinx.coroutines.launch
 class DebugPresetReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ACTION) return
+        if (intent.action != ACTION && intent.action != ACTION_SEED) return
         val settings = SettingsRepository(context.applicationContext)
-        val pending = goAsync()
+        val progress = ProgressRepository(context.applicationContext)
+        if (intent.action == ACTION_SEED) {
+            val joined = intent.getStringExtra(EXTRA_SEED_WORDS) ?: return
+            val languageKey = intent.getStringExtra(EXTRA_LANGUAGE_CODE) ?: "es"
+            val pending = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Each comma-separated word is marked as introduced once;
+                    // counters re-earn honestly through practice.
+                    progress.recordAssistantMessage(languageKey, emptySet(), joined)
+                    Log.i(TAG, "seeded words: $joined")
+                } catch (e: Exception) {
+                    Log.e(TAG, "seed failed", e)
+                } finally {
+                    pending.finish()
+                }
+            }
+            return
+        }
+        if (intent.action != ACTION) return
+        val presetPending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val current = settings.current()
@@ -74,13 +94,14 @@ class DebugPresetReceiver : BroadcastReceiver() {
             } catch (e: Exception) {
                 Log.e(TAG, "preset failed", e)
             } finally {
-                pending.finish()
+                presetPending.finish()
             }
         }
     }
 
     companion object {
         const val ACTION = "com.yeckel.tutor.DEBUG_CONFIG"
+        const val ACTION_SEED = "com.yeckel.tutor.DEBUG_SEED_WORDS"
         const val TAG = "DebugPreset"
 
         const val EXTRA_URL = "url"
@@ -93,5 +114,7 @@ class DebugPresetReceiver : BroadcastReceiver() {
         const val EXTRA_SPEAK_WORDS = "speak_words"
         const val EXTRA_SPEAK_MEANINGS = "speak_meanings"
         const val EXTRA_AUTO_LISTEN = "auto_listen"
+        const val EXTRA_SEED_WORDS = "seed_words"
+        const val EXTRA_LANGUAGE_CODE = "lang"
     }
 }

@@ -22,6 +22,12 @@ class TutorApp : Application() {
                 IntentFilter(DebugPresetReceiver.ACTION),
                 ContextCompat.RECEIVER_EXPORTED,
             )
+            ContextCompat.registerReceiver(
+                this,
+                DebugPresetReceiver(),
+                IntentFilter(DebugPresetReceiver.ACTION_SEED),
+                ContextCompat.RECEIVER_EXPORTED,
+            )
         }
     }
 }

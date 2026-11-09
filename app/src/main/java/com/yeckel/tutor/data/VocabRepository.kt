@@ -1,6 +1,7 @@
 package com.yeckel.tutor.data
 
 import android.content.Context
+import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -34,7 +35,8 @@ class VocabRepository(private val context: Context) {
                 .bufferedReader()
                 .use { it.readText() }
             json.decodeFromString<VocabFile>(text).words
-        }.getOrDefault(emptyList())
+        }.onFailure { Log.e("VocabRepo", "load failed for $key: $it") }
+            .getOrDefault(emptyList())
 
         cache[key] = words
         return words
@@ -43,16 +45,19 @@ class VocabRepository(private val context: Context) {
     companion object {
         val LEVELS = listOf("A0", "A1", "A2", "B1", "Off")
 
-        /** Maps a human language name to the asset folder code, when covered. */
-        fun languageCode(language: String): String? = when {
-            language.startsWith("spanish", ignoreCase = true) -> "es"
-            language.startsWith("english", ignoreCase = true) -> "en"
-            language.startsWith("german", ignoreCase = true) -> "de"
-            language.startsWith("french", ignoreCase = true) -> "fr"
-            language.startsWith("italian", ignoreCase = true) -> "it"
-            language.startsWith("czech", ignoreCase = true) ||
-                language.startsWith("cesk", ignoreCase = true) -> "cs"
-            else -> null
+        /** Maps a human language name (or a code) to the asset folder code. */
+        fun languageCode(language: String): String? {
+            val name = language.trim().lowercase()
+            if (name in setOf("es", "en", "de", "fr", "it", "cs")) return name
+            return when {
+                name.startsWith("spanish") || name.startsWith("-es") -> "es"
+                name.startsWith("english") -> "en"
+                name.startsWith("german") || name.startsWith("deutsche") -> "de"
+                name.startsWith("french") || name.startsWith("français") || name.startsWith("francais") -> "fr"
+                name.startsWith("italian") || name.startsWith("italiano") -> "it"
+                name.startsWith("czech") || name.startsWith("cesk") || name.startsWith("češ") -> "cs"
+                else -> null
+            }
         }
     }
 }
