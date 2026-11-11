@@ -27,6 +27,15 @@ Today's additions, in commit order:
    underlined gloss → bottom sheet with meaning + "Add to my words"),
    **Retry** button next to errors (drops the failed attempt, regenerates),
    **pause/resume** (⏸/▶) for the spoken loop.
+6. `10f0977` — **Practice-language dropdown in Settings** (es/en/de/fr/it,
+   native names; custom stored values kept as extra options), pick auto-saves.
+7. **💡 Reformulated sentence**: when the learner's message has mistakes, the
+   correction block now ends with a `💡 Puedes decir: "…"`-style line (fixed
+   emoji marker; full corrected version of the whole message, practice
+   language). Chat renders that line as a distinct primaryContainer card with
+   a 🔊 glyph — tap to hear it spoken (TTS, practice-language locale); in
+   voice mode the mic closes during playback and reopens after (reuses the
+   reply's reopen machinery). The 💡 emoji is stripped from all read-aloud.
 
 From earlier days: ollama.com cloud backend + Bearer key (model
 `gemma4:31b`), streaming chat with corrections, vocabulary tiers A0–B1
@@ -71,7 +80,8 @@ unlock cards.
 ## Roadmap candidates for next time (pick one)
 
 1. Conversation archive — browse past lessons, not just "continue last".
-2. Corrections layout — wrong → right → reason as a distinct block.
+2. Corrections layout — wrong → right → reason styling (the 💡 reformulation
+   card is done; the fix list itself is still plain text).
 3. Pronunciation feedback — heard vs expected phonetics.
 4. Long-article pre-summarization (client-side truncation at ~12k chars).
 5. Release APK with proper versioning (`versionName` still `0.1.0`,

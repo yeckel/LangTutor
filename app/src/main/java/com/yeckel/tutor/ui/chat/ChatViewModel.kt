@@ -406,11 +406,28 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     private fun languageKeyFor(language: String): String =
         VocabRepository.languageCode(language) ?: language.lowercase()
 
+    /**
+     * Speaks a 💡 reformulation line from a correction block when the learner
+     * taps it: they hear how their sentence should sound before repeating it.
+     * In voice mode this reuses the reply's mic machinery — the mic closes
+     * while it plays and reopens once the queue drains.
+     */
+    fun speakSuggestion(text: String) {
+        val clean = text.trim()
+        if (clean.isEmpty()) return
+        val tag = SpeechSupport.localeFor(languageKey)?.toLanguageTag() ?: return
+        if (_uiState.value.voice && !_uiState.value.voicePaused) reopenAfterSpeech = true
+        queueReadAloud(clean, tag, flush = false)
+    }
+
     /** Queues one read-aloud utterance; decrements the pending counter on done. */
     private fun queueReadAloud(utterance: String, tag: String, flush: Boolean) {
+        // The 💡 marker marks reformulations on screen; TTS reads only the text.
+        val clean = utterance.replace("💡", "").trim()
+        if (clean.isEmpty()) return
         spokenPending += 1
         markSpeaking(true)
-        container.tts.speak(utterance, tag, flush = flush) {
+        container.tts.speak(clean, tag, flush = flush) {
             spokenPending = (spokenPending - 1).coerceAtLeast(0)
             // The reopen fires exactly when the TTS queue drains and the
             // reply already finished streaming.

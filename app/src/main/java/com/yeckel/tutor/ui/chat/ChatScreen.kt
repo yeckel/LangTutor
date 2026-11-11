@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -53,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -350,10 +352,14 @@ fun ChatScreen(onBack: () -> Unit) {
                     }
                 }
                 items(count = state.messages.size) { index ->
-                    Bubble(state.messages[index], onGlossTap = { word, gloss ->
-                        glossAdded = false
-                        glossSheet = word to gloss
-                    })
+                    Bubble(
+                        state.messages[index],
+                        onGlossTap = { word, gloss ->
+                            glossAdded = false
+                            glossSheet = word to gloss
+                        },
+                        onSuggestionTap = viewModel::speakSuggestion,
+                    )
                 }
             }
 
@@ -446,6 +452,7 @@ fun ChatScreen(onBack: () -> Unit) {
 private fun Bubble(
     message: UiMessage,
     onGlossTap: (word: String, gloss: String) -> Unit = { _, _ -> },
+    onSuggestionTap: (text: String) -> Unit = {},
 ) {
     val isUser = message.role == "user"
 
@@ -476,9 +483,81 @@ private fun Bubble(
                 } else if (isUser) {
                     Text(message.content, style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    GlossText(message.content, onGlossTap)
+                    TutorText(message.content, onGlossTap, onSuggestionTap)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Matches a 💡 reformulation line the tutor adds at the end of a correction
+ * block: the whole corrected version of the learner's message on one line.
+ */
+private val suggestionPattern = Regex("(?m)^[ \\t]*💡[ \\t]*(.*)$")
+
+/** Assistant bubble content as segments: plain tutor text and 💡 reformulations. */
+private fun suggestionSegments(content: String): List<Pair<String, Boolean>> {
+    val segments = mutableListOf<Pair<String, Boolean>>()
+    var index = 0
+    suggestionPattern.findAll(content).forEach { match ->
+        if (match.range.first > index) {
+            segments.add(Pair(content.substring(index, match.range.first), false))
+        }
+        segments.add(Pair(match.groupValues[1].trim(), true))
+        index = match.range.last + 1
+    }
+    if (index < content.length) segments.add(Pair(content.substring(index), false))
+    return segments.filter { it.first.isNotBlank() }
+}
+
+/**
+ * Tutor text where 💡 reformulation lines become distinct, tappable cards
+ * ("tap to hear") and everything else keeps its tappable glosses.
+ */
+@Composable
+private fun TutorText(
+    content: String,
+    onGlossTap: (String, String) -> Unit,
+    onSuggestionTap: (String) -> Unit,
+) {
+    val segments = remember(content) { suggestionSegments(content) }
+    if (segments.size == 1 && !segments[0].second) {
+        GlossText(content, onGlossTap)
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        segments.forEach { (text, isSuggestion) ->
+            if (isSuggestion) {
+                SuggestionCard(text, onSuggestionTap)
+            } else {
+                GlossText(text, onGlossTap)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionCard(text: String, onTap: (String) -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onTap(text) },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("🔊", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
     }
 }
