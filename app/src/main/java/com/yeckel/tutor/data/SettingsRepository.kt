@@ -104,5 +104,14 @@ class SettingsRepository(private val context: Context) {
             LanguageOption("pl", "Polski", "Polish"),
             LanguageOption("sk", "Slovenčina", "Slovak"),
         )
+
+        /** Languages the tutor can teach: bundled vocab tiers exist for each. */
+        val LEARNABLE_LANGUAGES = listOf(
+            LanguageOption("es", "Español", "Spanish"),
+            LanguageOption("en", "English", "English"),
+            LanguageOption("de", "Deutsch", "German"),
+            LanguageOption("fr", "Français", "French"),
+            LanguageOption("it", "Italiano", "Italian"),
+        )
     }
 }

@@ -105,7 +105,7 @@
     <string name="settings_api_key">Klucz API (opcjonalnie)</string>
     <string name="settings_api_key_hint">Potrzebny tylko, gdy serwer jest za proxy z logowaniem.</string>
     <string name="settings_practice_language">Ćwiczony język</string>
-    <string name="settings_practice_hint">Język, którym mówi autor, np. angielski, hiszpański, niemiecki…</string>
+    <string name="settings_practice_hint">Język, którego się uczysz — mówi w nim autor.</string>
     <string name="settings_app_language">Język aplikacji</string>
     <string name="settings_app_language_system">Jak system</string>
     <string name="settings_help_language">Twój język (pomocniczy)</string>

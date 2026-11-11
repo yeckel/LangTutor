@@ -105,7 +105,7 @@
     <string name="settings_api_key">API-Schlüssel (optional)</string>
     <string name="settings_api_key_hint">Nur nötig, wenn dein Server hinter einem Proxy mit Anmeldung liegt.</string>
     <string name="settings_practice_language">Übungssprache</string>
-    <string name="settings_practice_hint">Die Sprache, die der Tutor spricht, z. B. Englisch, Spanisch, Französisch…</string>
+    <string name="settings_practice_hint">Die Sprache, die du lernst — der Tutor spricht sie.</string>
     <string name="settings_app_language">App-Sprache</string>
     <string name="settings_app_language_system">Wie System</string>
     <string name="settings_help_language">Deine Sprache (Hilfssprache)</string>

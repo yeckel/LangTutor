@@ -105,7 +105,7 @@
     <string name="settings_api_key">Klíč API (nepovinné)</string>
     <string name="settings_api_key_hint">Potrebné len vtedy, keď server beží za proxy s prihlásením.</string>
     <string name="settings_practice_language">Cvičený jazyk</string>
-    <string name="settings_practice_hint">Jazyk, ktorým učiteľ hovorí, napr. angličtina, nemčina, francúzština…</string>
+    <string name="settings_practice_hint">Jazyk, ktorý sa učíte — učiteľ ním hovorí.</string>
     <string name="settings_app_language">Jazyk aplikácie</string>
     <string name="settings_app_language_system">Podľa systému</string>
     <string name="settings_help_language">Váš jazyk (pomocný jazyk)</string>

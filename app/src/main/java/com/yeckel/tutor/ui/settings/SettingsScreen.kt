@@ -108,14 +108,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                value = state.language,
-                onValueChange = viewModel::onLanguageChange,
-                label = { Text(stringResource(R.string.settings_practice_language)) },
-                supportingText = { Text(stringResource(R.string.settings_practice_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            PracticeLanguageDropdown(state, viewModel)
 
             AppLanguageDropdown()
 
@@ -213,6 +206,58 @@ fun SettingsScreen(onBack: () -> Unit) {
                     message,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Practice-language dropdown: the language the tutor speaks and teaches. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PracticeLanguageDropdown(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val stored = state.language
+    val currentDisplay = if (stored.isBlank()) "" else practiceLanguageDisplay(stored)
+
+    // Keep a previously typed custom value visible and selectable.
+    val customOptions = if (
+        stored.isNotBlank() &&
+        SettingsRepository.LEARNABLE_LANGUAGES.none { it.native == currentDisplay }
+    ) {
+        listOf(LanguageOption("", currentDisplay, stored))
+    } else {
+        emptyList()
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = currentDisplay,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.settings_practice_language)) },
+            supportingText = { Text(stringResource(R.string.settings_practice_hint)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            (SettingsRepository.LEARNABLE_LANGUAGES + customOptions).forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.native) },
+                    trailingIcon = { if (option.native == currentDisplay) SelectedIcon() },
+                    onClick = {
+                        viewModel.selectLanguage(option.value)
+                        expanded = false
+                    },
                 )
             }
         }
@@ -423,6 +468,17 @@ private fun appLanguageDisplay(): String {
 /** Stored help-language value ("Czech", "čeština"…) shown as a native name. */
 private fun helpLanguageDisplay(stored: String): String {
     val supported = SettingsRepository.SUPPORTED_LANGUAGES
+    supported.firstOrNull { it.value.equals(stored.trim(), ignoreCase = true) }
+        ?.let { return it.native }
+    VocabRepository.languageCode(stored)?.let { code ->
+        supported.firstOrNull { it.code == code }?.let { return it.native }
+    }
+    return stored // custom value typed before the dropdown existed
+}
+
+/** Stored practice-language value ("Spanish", "es"…) shown as a native name. */
+private fun practiceLanguageDisplay(stored: String): String {
+    val supported = SettingsRepository.LEARNABLE_LANGUAGES
     supported.firstOrNull { it.value.equals(stored.trim(), ignoreCase = true) }
         ?.let { return it.native }
     VocabRepository.languageCode(stored)?.let { code ->

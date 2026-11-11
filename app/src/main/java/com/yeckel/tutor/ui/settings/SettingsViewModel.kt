@@ -67,8 +67,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun onApiKeyChange(value: String) =
         _uiState.update { it.copy(apiKey = value, message = null) }
 
-    fun onLanguageChange(value: String) =
+    /** Practice-language dropdown pick; persists immediately like the speak toggles. */
+    fun selectLanguage(value: String) {
         _uiState.update { it.copy(language = value, message = null) }
+        save()
+    }
 
     /** Help-language dropdown pick; persists immediately like the speak toggles. */
     fun selectHelpLanguage(value: String) {

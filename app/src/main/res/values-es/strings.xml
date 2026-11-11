@@ -105,7 +105,7 @@
     <string name="settings_api_key">Clave API (opcional)</string>
     <string name="settings_api_key_hint">Solo si tu servidor está detrás de un proxy con autenticación.</string>
     <string name="settings_practice_language">Idioma que practicas</string>
-    <string name="settings_practice_hint">El idioma que habla el tutor, p. ej. español, alemán, francés…</string>
+    <string name="settings_practice_hint">El idioma que estás aprendiendo — el tutor habla en él.</string>
     <string name="settings_app_language">Idioma de la aplicación</string>
     <string name="settings_app_language_system">Según el sistema</string>
     <string name="settings_help_language">Tu idioma (idioma de ayuda)</string>

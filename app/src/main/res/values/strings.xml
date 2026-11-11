@@ -111,7 +111,7 @@
     <string name="settings_api_key">API key (optional)</string>
     <string name="settings_api_key_hint">Only needed if your server sits behind an authenticated proxy.</string>
     <string name="settings_practice_language">Practice language</string>
-    <string name="settings_practice_hint">The language the tutor speaks, e.g. Spanish, German, French…</string>
+    <string name="settings_practice_hint">The language you are learning — the tutor speaks it.</string>
     <string name="settings_app_language">App language</string>
     <string name="settings_app_language_system">System default</string>
     <string name="nav_settings">Settings</string>
