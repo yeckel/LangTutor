@@ -113,6 +113,7 @@
     <string name="settings_vocab_level">Nivel de vocabulario</string>
     <string name="settings_vocab_hint">Palabras que el tutor puede dar por conocidas (niveles tipo Duolingo). Las palabras nuevas son pocas y vienen explicadas.</string>
     <string name="settings_model">Modelo</string>
+    <string name="settings_model_hint">Toca la flecha para cargar los modelos disponibles en tu servidor.</string>
     <string name="settings_fetch_models">Buscar modelos disponibles</string>
     <string name="settings_fetching_models">Buscando modelos…</string>
     <string name="settings_read_aloud">Leer respuestas en voz alta</string>

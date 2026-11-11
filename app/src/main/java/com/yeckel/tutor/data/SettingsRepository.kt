@@ -10,6 +10,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+/** A language the app fully speaks: UI translation, help glosses, locale tags. */
+data class LanguageOption(
+    /** Locale tag used by the per-app locale switch, e.g. "cs". */
+    val code: String,
+    /** Name shown in the UI, written in that language. */
+    val native: String,
+    /** Name stored in the config and used in tutor prompts, e.g. "Czech". */
+    val value: String,
+)
+
 /** User configuration for server connection and tutoring setup. */
 data class TutorConfig(
     val baseUrl: String,
@@ -84,5 +94,15 @@ class SettingsRepository(private val context: Context) {
 
         /** Tiered known-word levels, in learning order. */
         val VOCAB_LEVELS = listOf("A0", "A1", "A2", "B1", "Off")
+
+        /** Languages the app is translated into; offered as app + help language. */
+        val SUPPORTED_LANGUAGES = listOf(
+            LanguageOption("en", "English", "English"),
+            LanguageOption("cs", "Čeština", "Czech"),
+            LanguageOption("es", "Español", "Spanish"),
+            LanguageOption("de", "Deutsch", "German"),
+            LanguageOption("pl", "Polski", "Polish"),
+            LanguageOption("sk", "Slovenčina", "Slovak"),
+        )
     }
 }

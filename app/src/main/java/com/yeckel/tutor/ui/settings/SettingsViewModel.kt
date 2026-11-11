@@ -70,14 +70,20 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun onLanguageChange(value: String) =
         _uiState.update { it.copy(language = value, message = null) }
 
-    fun onHelpLanguageChange(value: String) =
+    /** Help-language dropdown pick; persists immediately like the speak toggles. */
+    fun selectHelpLanguage(value: String) {
         _uiState.update { it.copy(helpLanguage = value, message = null) }
+        save()
+    }
 
     fun onVocabLevelChange(value: String) =
         _uiState.update { it.copy(vocabLevel = value, message = null) }
 
-    fun selectModel(name: String) =
+    /** Model-dropdown pick; persists immediately like the speak toggles. */
+    fun pickModel(name: String) {
         _uiState.update { it.copy(model = name, message = null) }
+        save()
+    }
 
     fun refreshModels() {
         val current = _uiState.value

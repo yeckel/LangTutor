@@ -113,6 +113,7 @@
     <string name="settings_vocab_level">Poziom słownictwa</string>
     <string name="settings_vocab_hint">Słowa, które autor może uznać za znane (poziomy jak w Duolingo). Nowe słowa są rzadkie i wyjaśniane w nawiasie.</string>
     <string name="settings_model">Model</string>
+    <string name="settings_model_hint">Dotknij strzałki, aby wczytać modele dostępne na twoim serwerze.</string>
     <string name="settings_fetch_models">Pobierz dostępne modele</string>
     <string name="settings_fetching_models">Pobieram modele…</string>
     <string name="settings_read_aloud">Czytaj odpowiedzi na głos</string>

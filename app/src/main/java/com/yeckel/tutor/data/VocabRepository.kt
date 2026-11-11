@@ -48,7 +48,7 @@ class VocabRepository(private val context: Context) {
         /** Maps a human language name (or a code) to the asset folder code. */
         fun languageCode(language: String): String? {
             val name = language.trim().lowercase()
-            if (name in setOf("es", "en", "de", "fr", "it", "cs")) return name
+            if (name in setOf("es", "en", "de", "fr", "it", "cs", "pl", "sk")) return name
             return when {
                 name.startsWith("spanish") || name.startsWith("-es") -> "es"
                 name.startsWith("english") -> "en"
@@ -56,6 +56,8 @@ class VocabRepository(private val context: Context) {
                 name.startsWith("french") || name.startsWith("français") || name.startsWith("francais") -> "fr"
                 name.startsWith("italian") || name.startsWith("italiano") -> "it"
                 name.startsWith("czech") || name.startsWith("cesk") || name.startsWith("češ") -> "cs"
+                name.startsWith("polish") || name.startsWith("polsk") -> "pl"
+                name.startsWith("slovak") || name.startsWith("slovensk") -> "sk"
                 else -> null
             }
         }

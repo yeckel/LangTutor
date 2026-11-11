@@ -113,6 +113,7 @@
     <string name="settings_vocab_level">Wortschatzniveau</string>
     <string name="settings_vocab_hint">Wörter, die der Tutor als bekannt annehmen darf (Duolingo-artige Stufen). Neue Wörter bleiben selten und werden erklärt.</string>
     <string name="settings_model">Modell</string>
+    <string name="settings_model_hint">Tippe auf den Pfeil, um die auf deinem Server verfügbaren Modelle zu laden.</string>
     <string name="settings_fetch_models">Verfügbare Modelle laden</string>
     <string name="settings_fetching_models">Lade Modelle…</string>
     <string name="settings_read_aloud">Antworten vorlesen</string>

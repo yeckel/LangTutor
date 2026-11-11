@@ -113,6 +113,7 @@
     <string name="settings_vocab_level">Úroveň slovní zásoby</string>
     <string name="settings_vocab_hint">Slova, která učitel může považovat za známá (úrovně podobné Duolingu). Nová slova zůstávají vzácná a jsou vysvětlena v závorce.</string>
     <string name="settings_model">Model</string>
+    <string name="settings_model_hint">Klepnutím na šipku načtete modely dostupné na vašem serveru.</string>
     <string name="settings_fetch_models">Načíst dostupné modely</string>
     <string name="settings_fetching_models">Načítám modely…</string>
     <string name="settings_read_aloud">Číst odpovědi nahlas</string>

@@ -120,6 +120,7 @@
     <string name="settings_vocab_level">Vocabulary level</string>
     <string name="settings_vocab_hint">Words the tutor may assume you know (Duolingo-style tiers). New words are kept rare and glossed.</string>
     <string name="settings_model">Model</string>
+    <string name="settings_model_hint">Tap the arrow to load the models available on your server.</string>
     <string name="settings_fetch_models">Fetch available models</string>
     <string name="settings_fetching_models">Fetching models…</string>
     <string name="settings_read_aloud">Read replies aloud</string>

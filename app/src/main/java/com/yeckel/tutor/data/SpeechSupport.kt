@@ -29,6 +29,8 @@ object SpeechSupport {
         "fr" -> Locale("fr", "FR")
         "it" -> Locale("it", "IT")
         "cs" -> Locale("cs", "CZ")
+        "pl" -> Locale("pl", "PL")
+        "sk" -> Locale("sk", "SK")
         else -> null
     }
 

@@ -2,7 +2,6 @@ package com.yeckel.tutor.ui.settings
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,21 +16,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +48,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yeckel.tutor.R
+import com.yeckel.tutor.data.LanguageOption
 import com.yeckel.tutor.data.SettingsRepository
+import com.yeckel.tutor.data.VocabRepository
 import com.yeckel.tutor.rememberAppContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,56 +59,6 @@ fun SettingsScreen(onBack: () -> Unit) {
     val container = rememberAppContainer()
     val viewModel: SettingsViewModel = viewModel { SettingsViewModel(container) }
     val state by viewModel.uiState.collectAsState()
-    var showAppLanguageDialog by remember { mutableStateOf(false) }
-
-    val appLanguageOptions = listOf(
-        "system" to stringResource(R.string.settings_app_language_system),
-        "en" to "English",
-        "cs" to "Čeština",
-        "es" to "Español",
-        "de" to "Deutsch",
-        "pl" to "Polski",
-        "sk" to "Slovenčina",
-    )
-    val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-
-    if (showAppLanguageDialog) {
-        AlertDialog(
-            onDismissRequest = { showAppLanguageDialog = false },
-            title = { Text(stringResource(R.string.settings_app_language)) },
-            text = {
-                Column {
-                    appLanguageOptions.forEach { (tag, displayName) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    AppCompatDelegate.setApplicationLocales(
-                                        if (tag == "system") {
-                                            LocaleListCompat.getEmptyLocaleList()
-                                        } else {
-                                            LocaleListCompat.forLanguageTags(tag)
-                                        },
-                                    )
-                                    showAppLanguageDialog = false
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = tag == currentTags.split(",")[0].substringBefore("-") || (tag == "system" && currentTags.isBlank()), onClick = null)
-                            Text(displayName, modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showAppLanguageDialog = false }) {
-                    Text(stringResource(R.string.common_back))
-                }
-            },
-        )
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -162,22 +117,10 @@ fun SettingsScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { showAppLanguageDialog = true },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
-                    Text(stringResource(R.string.settings_app_language))
-                    Text(
-                        appLanguageDisplay(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            AppLanguageDropdown()
 
             Text(
-                "Vocabulary level",
+                stringResource(R.string.settings_vocab_level),
                 style = MaterialTheme.typography.labelLarge,
             )
             Row(
@@ -207,14 +150,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            OutlinedTextField(
-                value = state.helpLanguage,
-                onValueChange = viewModel::onHelpLanguageChange,
-                label = { Text(stringResource(R.string.settings_help_language)) },
-                supportingText = { Text(stringResource(R.string.settings_help_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            HelpLanguageDropdown(state, viewModel)
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -261,38 +197,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Switch(checked = state.speakMeanings, onCheckedChange = viewModel::toggleSpeakMeanings)
             }
 
-            OutlinedTextField(
-                value = state.model,
-                onValueChange = viewModel::selectModel,
-                label = { Text(stringResource(R.string.settings_model)) },
-                placeholder = { Text(stringResource(R.string.settings_model)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            TextButton(
-                onClick = viewModel::refreshModels,
-                enabled = !state.loadingModels,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (state.loadingModels) stringResource(R.string.settings_fetching_models) else stringResource(R.string.settings_fetch_models))
-            }
-
-            state.models.forEach { name ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.selectModel(name) }
-                        .padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(
-                        selected = name == state.model,
-                        onClick = null,
-                    )
-                    Text(name, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            ModelDropdown(state, viewModel)
 
             Spacer(Modifier.height(8.dp))
 
@@ -314,22 +219,214 @@ fun SettingsScreen(onBack: () -> Unit) {
     }
 }
 
+/** App-language dropdown: System default + every language the UI is translated into. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppLanguageDropdown() {
+    var expanded by remember { mutableStateOf(false) }
+    val currentTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+        .split(",")
+        .firstOrNull()
+        ?.substringBefore("-")
+        .orEmpty()
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = appLanguageDisplay(),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.settings_app_language)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.settings_app_language_system)) },
+                trailingIcon = { if (currentTag.isBlank()) SelectedIcon() },
+                onClick = {
+                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+                    expanded = false
+                },
+            )
+            SettingsRepository.SUPPORTED_LANGUAGES.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.native) },
+                    trailingIcon = { if (option.code == currentTag) SelectedIcon() },
+                    onClick = {
+                        AppCompatDelegate.setApplicationLocales(
+                            LocaleListCompat.forLanguageTags(option.code),
+                        )
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** Help-language dropdown: the language glosses and tutor notes are written in. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HelpLanguageDropdown(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val stored = state.helpLanguage
+    val currentDisplay = if (stored.isBlank()) "" else helpLanguageDisplay(stored)
+
+    // Keep a previously typed custom value visible and selectable.
+    val customOptions = if (
+        stored.isNotBlank() &&
+        SettingsRepository.SUPPORTED_LANGUAGES.none { it.native == currentDisplay }
+    ) {
+        listOf(LanguageOption("", currentDisplay, stored))
+    } else {
+        emptyList()
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = currentDisplay,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.settings_help_language)) },
+            supportingText = { Text(stringResource(R.string.settings_help_hint)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            (SettingsRepository.SUPPORTED_LANGUAGES + customOptions).forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.native) },
+                    trailingIcon = { if (option.native == currentDisplay) SelectedIcon() },
+                    onClick = {
+                        viewModel.selectHelpLanguage(option.value)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** Model combo box: shows the server's models in a dropdown, still allows typing. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelDropdown(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    // Load the server's model list the first time the menu opens, so the
+    // user sees the real options instead of an empty field.
+    LaunchedEffect(expanded) {
+        if (expanded && state.models.isEmpty() && !state.loadingModels) {
+            viewModel.refreshModels()
+        }
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = state.model,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.settings_model)) },
+            supportingText = { Text(stringResource(R.string.settings_model_hint)) },
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (state.loadingModels) {
+                                R.string.settings_fetching_models
+                            } else {
+                                R.string.settings_fetch_models
+                            },
+                        ),
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+                onClick = { if (!state.loadingModels) viewModel.refreshModels() },
+            )
+            when {
+                state.loadingModels ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings_fetching_models)) },
+                        onClick = {},
+                        enabled = false,
+                    )
+
+                state.models.isEmpty() ->
+                    DropdownMenuItem(
+                        text = { Text(state.message ?: "No models found on the server") },
+                        onClick = {},
+                        enabled = false,
+                    )
+
+                else ->
+                    state.models.forEach { name ->
+                        DropdownMenuItem(
+                            text = { Text(name) },
+                            trailingIcon = { if (name == state.model) SelectedIcon() },
+                            onClick = {
+                                viewModel.pickModel(name)
+                                expanded = false
+                            },
+                        )
+                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectedIcon() {
+    Icon(Icons.Filled.Check, contentDescription = null)
+}
+
 @Composable
 private fun appLanguageDisplay(): String {
     val tags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-    val options = listOf(
-        "en" to "English",
-        "cs" to "Čeština",
-        "es" to "Español",
-        "de" to "Deutsch",
-        "pl" to "Polski",
-        "sk" to "Slovenčina",
-    )
     return when {
         tags.isBlank() -> stringResource(R.string.settings_app_language_system)
         else -> {
             val tag = tags.split(",")[0].substringBefore("-")
-            options.firstOrNull { it.first == tag }?.second ?: tags
+            SettingsRepository.SUPPORTED_LANGUAGES.firstOrNull { it.code == tag }?.native ?: tags
         }
     }
+}
+
+/** Stored help-language value ("Czech", "čeština"…) shown as a native name. */
+private fun helpLanguageDisplay(stored: String): String {
+    val supported = SettingsRepository.SUPPORTED_LANGUAGES
+    supported.firstOrNull { it.value.equals(stored.trim(), ignoreCase = true) }
+        ?.let { return it.native }
+    VocabRepository.languageCode(stored)?.let { code ->
+        supported.firstOrNull { it.code == code }?.let { return it.native }
+    }
+    return stored // custom value typed before the dropdown existed
 }
