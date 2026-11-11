@@ -1,7 +1,7 @@
 # LangTutor — session handoff (Mon Nov 9, 2026)
 
 Fresh-start notes, so the next session can pick up mid-stride.
-Everything below lives on `origin/main`, HEAD `7d2a1ec`, clean tree.
+Everything below lives on `origin/main`, clean tree.
 
 ## Where the app stands
 
@@ -45,13 +45,28 @@ unlock cards.
 
 ## Verified vs not verified
 
-- ✅ Emulator: all new UI verified live — full Czech home + settings,
+- ✅ **Reformulation card verified live on the phone** (Tue Nov 11): typed a
+  flawed Spanish sentence ("… because tiene muy mal tiempo") → full
+  `Corrección:` block + 🔊 `Puedes decir: "…"` card + normal response; with
+  voice mode on, tapping the card speaks it (mic closes → "Mluvím"), then the
+  mic reopens ("Poslouchám") with no echo and no stray turns. The 💡 emoji is
+  never read aloud (stripped in `queueReadAloud`). Old lessons simply render
+  plain text (the prompt change only affects new replies).
+- ✅ Emulator (Nov 9): new UI verified live — full Czech home + settings,
   voice mode on/off, pause/resume transitions, deck counts with the
   filter chips, retry on a broken-connection error, no crashes.
-- ⏳ **Open: spoken voice conversation on the physical phone.** The
-  emulator cannot complete a turn (no downloadable on-device recognition
-  packs). Next session: unlock the phone → open a lesson → 🎙 → talk.
-  Tune if anything feels off (mic reopening eagerness, settle time).
+- ✅ **Spoken voice conversation on the physical phone** (Nov 11): the mic
+  listen/reopen loop works end-to-end on real hardware (observed with the
+  suggestion-card tap test).
+- ⏳ Practice-language dropdown live-verified (Nov 10): field, menu,
+  persistence across force-stop.
+
+## Screenshots
+
+`docs/screenshots/` has five README shots (start, chat reformulation, words,
+flashcards, settings — API key redacted), taken Tue Nov 11 on the phone,
+386×834 PNG. The settings shot MUST stay redacted — the live UI shows a real
+API key; recreate it with a blur over the key field if you retake it.
 
 ## Environment notes
 

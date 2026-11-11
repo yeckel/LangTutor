@@ -13,6 +13,15 @@ inline. Powered by an **Ollama** server that you point the app at (your own
 machine, a home server, or a hosted endpoint; an API key can be configured for
 endpoints behind an authenticated proxy).
 
+## Screenshots
+
+| | | |
+|---|---|---|
+| ![Start screen — resume or start a lesson](docs/screenshots/start.png) | ![Chat — correction block with a reformulation card](docs/screenshots/chat_reformulation.png) | ![My words — level progress and tracked words](docs/screenshots/words.png) |
+| *Resume the last lesson or paste a link* | *"Corrección" block + 💡 reformulated sentence — tap the card to hear it* | *Per-tier mastery bars, tracked words* |
+| ![Flash cards — write or say it](docs/screenshots/flashcards.png) | ![Settings](docs/screenshots/settings.png) | |
+| *Flash-card deck: write the meaning or say it* | *Server, API key (redacted), languages, model, levels* | |
+
 ## Status / what exists today
 
 - **Start screen** — paste a webpage link, preview the extracted article, start
@@ -20,7 +29,10 @@ endpoints behind an authenticated proxy).
   behind a paywall.
 - **Chat screen** — streaming conversation with the tutor. Replies in the
   practice language, always ends with a question, prefixes a *"Corrección"*-style
-  block (wrong → right + short explanation) when your answer contains mistakes.
+  block (wrong → right + short explanation) when your answer contains mistakes,
+  and ends that block with a **💡 reformulation** — your whole message rewritten
+  correctly, rendered as a distinct card you can **tap to hear** spoken; in
+  voice mode the mic closes for the playback and reopens after.
 - **Vocabulary levels (Step 1)** — tiered known-word lists (A0–B1, plus Off)
   bundled per language; the tutor sticks mostly to the list, introduces at most
   1–2 new words per message, glosses them in English (e.g. `el abrigo (coat)`),
@@ -233,7 +245,11 @@ What was built:
   dropping the failed (possibly partial) attempt.
 - ✅ **Pause for the spoken loop** — ⏸/▶ next to the 🎙 pauses the mic loop
   without leaving voice mode.
-- Corrections as distinct rendering (wrong → right → reason), not inline text. *(partially shipped: flash cards render per-word state)*
+- ✅ **Reformulation card** — the correction block ends with a 💡 line: the
+  learner's whole sentence rewritten correctly in the practice language;
+  rendered as a distinct card, tap to hear it (TTS), mic-safe in voice mode.
+- Corrections rendered as a distinct block (wrong → right → reason) with per-fix
+  styling. *(still plain text inside the bubble)*
 - Conversation archive (the *last* lesson already resumes; a full history view
   is future work).
 - Optional pronunciation-feedback pass (Step 4 leftover).
